@@ -1,0 +1,29 @@
+{
+    "name": "chrisjenkinson/symfony-service-sorter",
+    "description": "Sorts entries in the services: key of Symfony YAML files alphabetically",
+    "type": "project",
+    "license": "GPL-3.0-or-later",
+    "require": {
+        "php": "^8.1",
+        "symfony/console": "^6.0 || ^7.0 || ^8.0"
+    },
+    "require-dev": {
+        "phpunit/phpunit": "^10.0 || ^11.0",
+        "phpstan/phpstan": "^2.0",
+        "symplify/easy-coding-standard": "^12.0"
+    },
+    "autoload": {
+        "psr-4": {
+            "App\\": "src/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "App\\Tests\\": "tests/"
+        }
+    },
+    "bin": ["bin/sort-services"],
+    "config": {
+        "optimize-autoloader": true
+    }
+}
