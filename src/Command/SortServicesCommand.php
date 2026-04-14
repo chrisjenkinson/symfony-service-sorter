@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace App\Command;
 
+use App\IO\FileIO;
+use App\IO\FileIOException;
 use App\Parser\YamlServiceParser;
 use App\Sorter\ServicesSorter;
 use Symfony\Component\Console\Attribute\AsCommand;
@@ -23,6 +25,7 @@ final class SortServicesCommand extends Command
     public function __construct(
         private readonly YamlServiceParser $parser,
         private readonly ServicesSorter $sorter,
+        private readonly FileIO $fileIO,
     ) {
         parent::__construct();
     }
@@ -43,15 +46,10 @@ final class SortServicesCommand extends Command
         /** @var string $filePath */
         $filePath = $input->getArgument('file');
 
-        if (!file_exists($filePath)) {
-            $errorOutput->writeln(sprintf('<error>File not found: %s</error>', $filePath));
-            return Command::FAILURE;
-        }
-
-        $content = file_get_contents($filePath);
-
-        if ($content === false) {
-            $errorOutput->writeln(sprintf('<error>Could not read file: %s</error>', $filePath));
+        try {
+            $content = $this->fileIO->read($filePath);
+        } catch (FileIOException $e) {
+            $errorOutput->writeln(sprintf('<error>%s</error>', $e->getMessage()));
             return Command::FAILURE;
         }
 
@@ -67,9 +65,10 @@ final class SortServicesCommand extends Command
         $sorted = $this->sorter->sort($parsedFile);
 
         if ($input->getOption('write')) {
-            $written = file_put_contents($filePath, $sorted);
-            if ($written === false) {
-                $errorOutput->writeln(sprintf('<error>Could not write to file: %s</error>', $filePath));
+            try {
+                $this->fileIO->write($filePath, $sorted);
+            } catch (FileIOException $e) {
+                $errorOutput->writeln(sprintf('<error>%s</error>', $e->getMessage()));
                 return Command::FAILURE;
             }
             return Command::SUCCESS;
