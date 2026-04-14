@@ -6,6 +6,7 @@ namespace App\Tests\Unit\Sorter;
 
 use App\Parser\ParsedFile;
 use App\Parser\ServiceChunk;
+use App\Sorter\ServiceKeyNormalizer;
 use App\Sorter\ServicesSorter;
 use PHPUnit\Framework\TestCase;
 
@@ -15,7 +16,7 @@ final class ServicesSorterTest extends TestCase
 
     protected function setUp(): void
     {
-        $this->sorter = new ServicesSorter();
+        $this->sorter = new ServicesSorter(new ServiceKeyNormalizer());
     }
 
     public function testSortsChunksAlphabetically(): void
@@ -158,6 +159,25 @@ final class ServicesSorterTest extends TestCase
             . "        autowire: true\n",
             $output,
         );
+    }
+
+    public function testStableSortPreservesInputOrderForTies(): void
+    {
+        $parsedFile = new ParsedFile(
+            preamble: [],
+            servicesHeader: "services:\n",
+            chunks: [
+                new ServiceChunk('app.read_model', ["    app.read_model:\n", "        class: Foo\n"]),
+                new ServiceChunk('App\\ReadModel', ["    App\\ReadModel:\n", "        class: Bar\n"]),
+            ],
+            remainder: [],
+        );
+
+        $output = $this->sorter->sort($parsedFile);
+
+        $dotPos = strpos($output, 'app.read_model');
+        $backslashPos = strpos($output, 'App\\ReadModel');
+        self::assertGreaterThan($dotPos, $backslashPos, 'app.read_model should come before App\ReadModel (original order preserved for ties)');
     }
 
     public function testMultipleUnderscoreEntriesSortedAmongThemselves(): void
