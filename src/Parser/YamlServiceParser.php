@@ -161,7 +161,7 @@ final class YamlServiceParser
                 continue;
             }
 
-            if ($lineIndent === '' && $rtrimmedLine !== '') {
+            if ($lineIndent === '') {
                 if ($currentKey !== null) {
                     $chunks[] = new ServiceChunk($currentKey, $currentLines);
                     $currentKey = null;
