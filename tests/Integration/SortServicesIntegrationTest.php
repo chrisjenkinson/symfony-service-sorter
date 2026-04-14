@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Tests\Integration;
 
 use App\Parser\YamlServiceParser;
+use App\Sorter\ServiceKeyNormalizer;
 use App\Sorter\ServicesSorter;
 use PHPUnit\Framework\TestCase;
 
@@ -16,7 +17,7 @@ final class SortServicesIntegrationTest extends TestCase
     protected function setUp(): void
     {
         $this->parser = new YamlServiceParser();
-        $this->sorter = new ServicesSorter();
+        $this->sorter = new ServicesSorter(new ServiceKeyNormalizer());
     }
 
     /**
