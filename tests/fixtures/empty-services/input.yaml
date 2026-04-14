@@ -1,0 +1,8 @@
+parameters:
+    locale: 'en'
+
+services:
+
+when@prod:
+    parameters:
+        foo: bar

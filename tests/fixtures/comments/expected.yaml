@@ -1,0 +1,8 @@
+services:
+    # This is Alpha
+    App\Alpha:
+        autowire: true
+
+    # This is Zebra
+    App\Zebra:
+        autowire: true
