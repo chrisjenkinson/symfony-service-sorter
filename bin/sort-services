@@ -1,0 +1,16 @@
+#!/usr/bin/env php
+<?php
+
+declare(strict_types=1);
+
+require __DIR__ . '/../vendor/autoload.php';
+
+use App\Command\SortServicesCommand;
+use App\Parser\YamlServiceParser;
+use App\Sorter\ServicesSorter;
+use Symfony\Component\Console\Application;
+
+$application = new Application('sort-services', '1.0.0');
+$application->addCommand(new SortServicesCommand(new YamlServiceParser(), new ServicesSorter()));
+$application->setDefaultCommand('sort-services', true);
+$application->run();
