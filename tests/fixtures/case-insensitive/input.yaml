@@ -1,0 +1,12 @@
+services:
+    App\Zebra:
+        autowire: true
+
+    app.read_model:
+        class: Foo
+
+    App\Other:
+        autowire: true
+
+    App\ReadModel:
+        autowire: true

@@ -36,12 +36,16 @@ final class ServicesSorter
         ));
 
         $sorted = array_merge($underscore, $named);
+        $normalized = array_map(fn (ServiceChunk $chunk): ServiceChunk => $this->normalizeChunk($chunk), $sorted);
 
         $parts = [];
         $parts[] = implode('', $parsedFile->preamble);
         $parts[] = $parsedFile->servicesHeader;
 
-        foreach ($sorted as $chunk) {
+        foreach ($normalized as $i => $chunk) {
+            if ($i > 0) {
+                $parts[] = "\n";
+            }
             $parts[] = implode('', $chunk->lines);
         }
 
@@ -55,5 +59,18 @@ final class ServicesSorter
         $key = str_replace('\\', '.', $key);
         $key = preg_replace('/([a-z])([A-Z])/', '$1_$2', $key) ?? $key;
         return strtolower($key);
+    }
+
+    private function normalizeChunk(ServiceChunk $chunk): ServiceChunk
+    {
+        $lines = $chunk->lines;
+        while ($lines !== [] && trim(reset($lines)) === '') {
+            array_shift($lines);
+        }
+        while ($lines !== [] && trim(end($lines)) === '') {
+            array_pop($lines);
+        }
+
+        return new ServiceChunk($chunk->key, $lines);
     }
 }

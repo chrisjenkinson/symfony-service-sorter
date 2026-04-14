@@ -1,0 +1,3 @@
+parameters:
+    locale: 'en'
+    foo: bar

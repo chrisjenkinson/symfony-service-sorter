@@ -1,0 +1,11 @@
+services:
+    _defaults:
+        autowire: true
+        autoconfigure: true
+
+    _instanceof:
+        App\Handler:
+            tags: [handler]
+
+    App\Foo:
+        autowire: true

@@ -1,0 +1,12 @@
+services:
+    App\Alpha:
+        arguments:
+            $foo: bar
+            $baz: qux
+
+    App\Zebra:
+        factory:
+            [
+                '@App\ZebraFactory',
+                'create',
+            ]

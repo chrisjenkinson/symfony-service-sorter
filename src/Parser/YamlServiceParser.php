@@ -8,6 +8,10 @@ final class YamlServiceParser
 {
     public function parse(string $content): ParsedFile
     {
+        if ($content !== '' && !str_ends_with($content, "\n")) {
+            $content .= "\n";
+        }
+
         $lines = $this->splitLines($content);
 
         $servicesLineIndex = $this->findServicesLine($lines);

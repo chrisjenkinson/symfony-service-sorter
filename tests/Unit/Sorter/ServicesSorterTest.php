@@ -135,6 +135,31 @@ final class ServicesSorterTest extends TestCase
         self::assertStringContainsString("services:\n", $output);
     }
 
+    public function testBlankLinesBetweenSortedChunks(): void
+    {
+        $parsedFile = new ParsedFile(
+            preamble: [],
+            servicesHeader: "services:\n",
+            chunks: [
+                new ServiceChunk('App\\Zebra', ["    App\\Zebra:\n", "        autowire: true\n"]),
+                new ServiceChunk('App\\Alpha', ["\n", "    App\\Alpha:\n", "        autowire: true\n"]),
+            ],
+            remainder: [],
+        );
+
+        $output = $this->sorter->sort($parsedFile);
+
+        self::assertSame(
+            "services:\n"
+            . "    App\\Alpha:\n"
+            . "        autowire: true\n"
+            . "\n"
+            . "    App\\Zebra:\n"
+            . "        autowire: true\n",
+            $output,
+        );
+    }
+
     public function testMultipleUnderscoreEntriesSortedAmongThemselves(): void
     {
         $parsedFile = new ParsedFile(
