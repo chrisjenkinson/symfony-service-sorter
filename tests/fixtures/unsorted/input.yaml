@@ -1,0 +1,9 @@
+services:
+    App\Zebra:
+        autowire: true
+
+    App\Alpha:
+        autowire: true
+
+    App\Mango:
+        autowire: true
