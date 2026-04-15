@@ -19,7 +19,7 @@ final class ServiceOrderChecker
      */
     public function check(ParsedFile $parsedFile): array
     {
-        $originalKeys = array_map(fn(ServiceChunk $chunk): string => $chunk->key, array_values($parsedFile->chunks));
+        $originalKeys = array_map(fn(ServiceChunk $chunk): string => $chunk->key, $parsedFile->chunks);
 
         if (count($originalKeys) <= 1) {
             return [];
