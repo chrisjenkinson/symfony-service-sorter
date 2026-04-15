@@ -8,7 +8,9 @@ use App\Command\FixCommand;
 use App\IO\FileIO;
 use App\IO\FileIOException;
 use App\Parser\YamlServiceParser;
+use App\Sorter\DuplicateServiceKeyException;
 use App\Sorter\ServiceKeyNormalizer;
+use App\Sorter\ServiceKeySorter;
 use App\Sorter\ServicesSorter;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
@@ -23,7 +25,7 @@ final class FixCommandTest extends TestCase
     protected function setUp(): void
     {
         $this->parser = new YamlServiceParser();
-        $this->sorter = new ServicesSorter(new ServiceKeyNormalizer());
+        $this->sorter = new ServicesSorter(new ServiceKeySorter(new ServiceKeyNormalizer()));
         $this->fileIO = $this->createMock(FileIO::class);
     }
 
@@ -122,5 +124,17 @@ final class FixCommandTest extends TestCase
         self::assertSame(0, $tester->getStatusCode());
         self::assertStringContainsString('parameters:', $tester->getDisplay());
         self::assertStringContainsString('no services: key found', $tester->getErrorOutput());
+    }
+
+    public function testDuplicateServiceKeyExitsOne(): void
+    {
+        $input = "services:\n    App\\Foo:\n        autowire: true\n    App\\Foo:\n        autowire: true\n";
+        $this->fileIO->method('read')->willReturn($input);
+
+        $tester = $this->createCommandTester();
+        $tester->execute(['file' => '/path/to/services.yaml'], ['capture_stderr_separately' => true]);
+
+        self::assertSame(1, $tester->getStatusCode());
+        self::assertStringContainsString('Duplicate service key', $tester->getErrorOutput());
     }
 }

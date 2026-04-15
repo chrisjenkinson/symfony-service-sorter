@@ -10,7 +10,7 @@ use App\Parser\ServiceChunk;
 final class ServiceOrderChecker
 {
     public function __construct(
-        private readonly ServiceKeyNormalizer $normalizer,
+        private readonly ServiceKeySorter $keySorter,
     ) {
     }
 
@@ -25,11 +25,7 @@ final class ServiceOrderChecker
             return [];
         }
 
-        $sortedKeys = $originalKeys;
-        usort($sortedKeys, fn (string $a, string $b): int => strcmp(
-            $this->normalizer->normalize($a),
-            $this->normalizer->normalize($b),
-        ));
+        $sortedKeys = $this->keySorter->sortKeys($originalKeys);
 
         $predecessorInSorted = [];
         for ($i = 1; $i < count($sortedKeys); $i++) {

@@ -6,6 +6,7 @@ namespace App\Tests\Integration;
 
 use App\Parser\YamlServiceParser;
 use App\Sorter\ServiceKeyNormalizer;
+use App\Sorter\ServiceKeySorter;
 use App\Sorter\ServicesSorter;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
@@ -18,7 +19,7 @@ final class SortServicesIntegrationTest extends TestCase
     protected function setUp(): void
     {
         $this->parser = new YamlServiceParser();
-        $this->sorter = new ServicesSorter(new ServiceKeyNormalizer());
+        $this->sorter = new ServicesSorter(new ServiceKeySorter(new ServiceKeyNormalizer()));
     }
 
     #[DataProvider('fixtureProvider')]

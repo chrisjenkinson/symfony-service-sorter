@@ -10,14 +10,15 @@ use App\Command\FixCommand;
 use App\IO\NativeFileIO;
 use App\Parser\YamlServiceParser;
 use App\Sorter\ServiceKeyNormalizer;
+use App\Sorter\ServiceKeySorter;
 use App\Sorter\ServiceOrderChecker;
 use App\Sorter\ServicesSorter;
 use Symfony\Component\Console\Application;
 
 $parser = new YamlServiceParser();
-$normalizer = new ServiceKeyNormalizer();
+$keySorter = new ServiceKeySorter(new ServiceKeyNormalizer());
 
 $application = new Application('sort-services', '1.0.0');
-$application->addCommand(new CheckCommand($parser, new ServiceOrderChecker($normalizer), new NativeFileIO()));
-$application->addCommand(new FixCommand($parser, new ServicesSorter($normalizer), new NativeFileIO()));
+$application->addCommand(new CheckCommand($parser, new ServiceOrderChecker($keySorter), new NativeFileIO()));
+$application->addCommand(new FixCommand($parser, new ServicesSorter($keySorter), new NativeFileIO()));
 $application->run();

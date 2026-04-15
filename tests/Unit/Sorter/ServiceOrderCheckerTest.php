@@ -8,6 +8,7 @@ use App\Parser\ParsedFile;
 use App\Parser\ServiceChunk;
 use App\Sorter\OutOfOrderEntry;
 use App\Sorter\ServiceKeyNormalizer;
+use App\Sorter\ServiceKeySorter;
 use App\Sorter\ServiceOrderChecker;
 use PHPUnit\Framework\TestCase;
 
@@ -17,7 +18,7 @@ final class ServiceOrderCheckerTest extends TestCase
 
     protected function setUp(): void
     {
-        $this->checker = new ServiceOrderChecker(new ServiceKeyNormalizer());
+        $this->checker = new ServiceOrderChecker(new ServiceKeySorter(new ServiceKeyNormalizer()));
     }
 
     public function testReturnsEmptyForAlreadySortedServices(): void

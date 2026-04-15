@@ -7,6 +7,7 @@ namespace App\Command;
 use App\IO\FileIO;
 use App\IO\FileIOException;
 use App\Parser\YamlServiceParser;
+use App\Sorter\DuplicateServiceKeyException;
 use App\Sorter\ServiceOrderChecker;
 use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Command\Command;
@@ -60,7 +61,12 @@ final class CheckCommand extends Command
             return Command::SUCCESS;
         }
 
-        $outOfOrder = $this->checker->check($parsedFile);
+        try {
+            $outOfOrder = $this->checker->check($parsedFile);
+        } catch (DuplicateServiceKeyException $e) {
+            $errorOutput->writeln(sprintf('<error>%s</error>', $e->getMessage()));
+            return Command::FAILURE;
+        }
 
         if ($outOfOrder === []) {
             $output->writeln('All services are in order.');

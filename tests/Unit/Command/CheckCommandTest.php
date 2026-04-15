@@ -8,7 +8,9 @@ use App\Command\CheckCommand;
 use App\IO\FileIO;
 use App\IO\FileIOException;
 use App\Parser\YamlServiceParser;
+use App\Sorter\DuplicateServiceKeyException;
 use App\Sorter\ServiceKeyNormalizer;
+use App\Sorter\ServiceKeySorter;
 use App\Sorter\ServiceOrderChecker;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
@@ -23,7 +25,7 @@ final class CheckCommandTest extends TestCase
     protected function setUp(): void
     {
         $this->parser = new YamlServiceParser();
-        $this->checker = new ServiceOrderChecker(new ServiceKeyNormalizer());
+        $this->checker = new ServiceOrderChecker(new ServiceKeySorter(new ServiceKeyNormalizer()));
         $this->fileIO = $this->createMock(FileIO::class);
     }
 
@@ -92,5 +94,17 @@ final class CheckCommandTest extends TestCase
 
         self::assertSame(0, $tester->getStatusCode());
         self::assertStringContainsString('All services are in order', $tester->getDisplay());
+    }
+
+    public function testDuplicateServiceKeyExitsOne(): void
+    {
+        $input = "services:\n    App\\Foo:\n        autowire: true\n    App\\Foo:\n        autowire: true\n";
+        $this->fileIO->method('read')->willReturn($input);
+
+        $tester = $this->createCommandTester();
+        $tester->execute(['file' => '/path/to/services.yaml'], ['capture_stderr_separately' => true]);
+
+        self::assertSame(1, $tester->getStatusCode());
+        self::assertStringContainsString('Duplicate service key', $tester->getErrorOutput());
     }
 }

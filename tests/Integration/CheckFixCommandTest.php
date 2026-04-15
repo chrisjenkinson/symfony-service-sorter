@@ -9,6 +9,7 @@ use App\Command\FixCommand;
 use App\IO\FileIO;
 use App\Parser\YamlServiceParser;
 use App\Sorter\ServiceKeyNormalizer;
+use App\Sorter\ServiceKeySorter;
 use App\Sorter\ServiceOrderChecker;
 use App\Sorter\ServicesSorter;
 use PHPUnit\Framework\Attributes\DataProvider;
@@ -16,7 +17,7 @@ use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
 use Symfony\Component\Console\Tester\CommandTester;
 
-final class CLIIntegrationTest extends TestCase
+final class CheckFixCommandTest extends TestCase
 {
     private YamlServiceParser $parser;
     private ServicesSorter $sorter;
@@ -26,9 +27,9 @@ final class CLIIntegrationTest extends TestCase
     protected function setUp(): void
     {
         $this->parser = new YamlServiceParser();
-        $normalizer = new ServiceKeyNormalizer();
-        $this->sorter = new ServicesSorter($normalizer);
-        $this->checker = new ServiceOrderChecker($normalizer);
+        $keySorter = new ServiceKeySorter(new ServiceKeyNormalizer());
+        $this->sorter = new ServicesSorter($keySorter);
+        $this->checker = new ServiceOrderChecker($keySorter);
         $this->fileIO = $this->createMock(FileIO::class);
     }
 
