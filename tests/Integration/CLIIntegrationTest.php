@@ -7,10 +7,10 @@ namespace App\Tests\Integration;
 use App\Command\CheckCommand;
 use App\Command\FixCommand;
 use App\IO\FileIO;
+use App\Parser\YamlServiceParser;
 use App\Sorter\ServiceKeyNormalizer;
 use App\Sorter\ServiceOrderChecker;
 use App\Sorter\ServicesSorter;
-use App\Parser\YamlServiceParser;
 use PHPUnit\Framework\TestCase;
 use Symfony\Component\Console\Tester\CommandTester;
 
