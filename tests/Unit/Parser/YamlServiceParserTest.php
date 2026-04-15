@@ -117,4 +117,124 @@ final class YamlServiceParserTest extends TestCase
         self::assertCount(2, $result->chunks);
         self::assertSame('_defaults', $result->chunks[0]->key);
     }
+
+    public function testFindServicesLineRequiresStartOfLineAnchor(): void
+    {
+        $yaml = "services:\n    App\\Foo:\n        autowire: true\n";
+
+        $result = $this->parser->parse($yaml);
+
+        self::assertSame("services:\n", $result->servicesHeader);
+    }
+
+    public function testFindServicesLineDoesNotMatchInlineServicesKey(): void
+    {
+        $yaml = "parameters:\n    locale: services: en\n";
+
+        $result = $this->parser->parse($yaml);
+
+        self::assertSame('', $result->servicesHeader);
+    }
+
+    public function testFindServicesLineMatchesWithTrailingWhitespace(): void
+    {
+        $yaml = "services:   \n    App\\Foo:\n        autowire: true\n";
+
+        $result = $this->parser->parse($yaml);
+
+        self::assertNotEmpty($result->chunks);
+    }
+
+    public function testBlankLineWithinServiceChunkIsPreserved(): void
+    {
+        $yaml = "services:\n    App\\Foo:\n        autowire: true\n\n        tags: [foo]\n";
+
+        $result = $this->parser->parse($yaml);
+
+        self::assertCount(1, $result->chunks);
+        self::assertSame(
+            ["    App\\Foo:\n", "        autowire: true\n", "\n", "        tags: [foo]\n"],
+            $result->chunks[0]->lines,
+        );
+    }
+
+    public function testCommentAtBlockIndentBetweenChunksIsSeparated(): void
+    {
+        $yaml = "services:\n    App\\Foo:\n        autowire: true\n\n    # A comment\n    App\\Bar:\n        autowire: true\n";
+
+        $result = $this->parser->parse($yaml);
+
+        self::assertCount(2, $result->chunks);
+        self::assertSame('App\\Foo', $result->chunks[0]->key);
+        self::assertSame('App\\Bar', $result->chunks[1]->key);
+        self::assertContains("\n", $result->chunks[0]->lines, 'blank line should be in foo chunk');
+        self::assertContains("    # A comment\n", $result->chunks[1]->lines);
+    }
+
+    public function testNewlineOnlyLineInBlockIsSkipped(): void
+    {
+        $yaml = "services:\n    App\\Foo:\n        autowire: true\n\n    App\\Bar:\n        autowire: true\n";
+
+        $result = $this->parser->parse($yaml);
+
+        self::assertCount(2, $result->chunks);
+    }
+
+    public function testCommentAtDifferentIndentStaysWithCurrentChunk(): void
+    {
+        $yaml = "services:\n    App\\Foo:\n        # inline comment\n        autowire: true\n";
+
+        $result = $this->parser->parse($yaml);
+
+        self::assertCount(1, $result->chunks);
+        $chunkText = implode('', $result->chunks[0]->lines);
+        self::assertStringContainsString('# inline comment', $chunkText);
+    }
+
+    public function testTrailingPendingLinesBecomeRemainder(): void
+    {
+        $yaml = "services:\n    App\\Foo:\n        autowire: true\n\n\nwhen@prod:\n    parameters:\n        foo: bar\n";
+
+        $result = $this->parser->parse($yaml);
+
+        $remainder = implode('', $result->remainder);
+        self::assertStringContainsString('when@prod:', $remainder);
+        self::assertStringContainsString('foo: bar', $remainder);
+    }
+
+    public function testPendingLinesMergedIntoLastChunkAndRemainder(): void
+    {
+        $yaml = "services:\n    App\\Foo:\n        autowire: true\n\n\nwhen@prod:\n    foo: bar\n";
+
+        $result = $this->parser->parse($yaml);
+
+        self::assertSame(
+            ["    App\\Foo:\n", "        autowire: true\n"],
+            $result->chunks[0]->lines,
+        );
+        self::assertContains("\n", $result->remainder);
+        self::assertContains("when@prod:\n", $result->remainder);
+    }
+
+    public function testIndentedCommentPreservesPendingLinesInChunk(): void
+    {
+        $yaml = "services:\n    App\\Foo:\n        autowire: true\n        # nested comment\n        bar: baz\n";
+
+        $result = $this->parser->parse($yaml);
+
+        self::assertCount(1, $result->chunks);
+        $chunkText = implode('', $result->chunks[0]->lines);
+        self::assertStringContainsString('autowire: true', $chunkText);
+        self::assertStringContainsString('# nested comment', $chunkText);
+        self::assertStringContainsString('bar: baz', $chunkText);
+    }
+
+    public function testFindServicesLineDoesNotMatchMidLine(): void
+    {
+        $yaml = "# services: is not a services key\nservices:\n    App\\Foo:\n        autowire: true\n";
+
+        $result = $this->parser->parse($yaml);
+
+        self::assertNotEmpty($result->chunks);
+    }
 }
