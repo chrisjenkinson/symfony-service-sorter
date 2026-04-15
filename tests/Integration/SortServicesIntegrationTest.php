@@ -7,6 +7,7 @@ namespace App\Tests\Integration;
 use App\Parser\YamlServiceParser;
 use App\Sorter\ServiceKeyNormalizer;
 use App\Sorter\ServicesSorter;
+use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 
 final class SortServicesIntegrationTest extends TestCase
@@ -20,7 +21,7 @@ final class SortServicesIntegrationTest extends TestCase
         $this->sorter = new ServicesSorter(new ServiceKeyNormalizer());
     }
 
-    #[\PHPUnit\Framework\Attributes\DataProvider('fixtureProvider')]
+    #[DataProvider('fixtureProvider')]
     public function testFixture(string $fixtureName): void
     {
         $fixtureDir = __DIR__ . '/../fixtures/' . $fixtureName;

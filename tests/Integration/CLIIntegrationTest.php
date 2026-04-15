@@ -11,6 +11,7 @@ use App\Parser\YamlServiceParser;
 use App\Sorter\ServiceKeyNormalizer;
 use App\Sorter\ServiceOrderChecker;
 use App\Sorter\ServicesSorter;
+use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 use Symfony\Component\Console\Tester\CommandTester;
 
@@ -148,7 +149,7 @@ final class CLIIntegrationTest extends TestCase
         self::assertStringContainsString('All services are in order', $tester->getDisplay());
     }
 
-    #[\PHPUnit\Framework\Attributes\DataProvider('fixtureProvider')]
+    #[DataProvider('fixtureProvider')]
     public function testFixStdoutMatchesExpected(string $fixtureName): void
     {
         $input = $this->readFixture($fixtureName . '/input.yaml');
