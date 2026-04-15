@@ -107,7 +107,7 @@ final class ServicesSorterTest extends TestCase
         self::assertGreaterThan($servicesPos, $whenPos);
     }
 
-    public function testNoServicesKeyReturnsFileUnchanged(): void
+    public function testNoServicesKeyReturnsPreambleUnchanged(): void
     {
         $parsedFile = new ParsedFile(
             preamble: ["parameters:\n", "    locale: 'en'\n"],
@@ -118,8 +118,7 @@ final class ServicesSorterTest extends TestCase
 
         $output = $this->sorter->sort($parsedFile);
 
-        self::assertStringContainsString('parameters:', $output);
-        self::assertStringNotContainsString('services:', $output);
+        self::assertSame("parameters:\n    locale: 'en'\n", $output);
     }
 
     public function testEmptyServicesBlockReturnsFileUnchanged(): void
@@ -153,6 +152,54 @@ final class ServicesSorterTest extends TestCase
         self::assertSame(
             "services:\n"
             . "    App\\Alpha:\n"
+            . "        autowire: true\n"
+            . "\n"
+            . "    App\\Zebra:\n"
+            . "        autowire: true\n",
+            $output,
+        );
+    }
+
+    public function testResultEndsWithNewlineWhenChunkLacksTrailingNewline(): void
+    {
+        $parsedFile = new ParsedFile(
+            preamble: [],
+            servicesHeader: "services:\n",
+            chunks: [
+                new ServiceChunk('App\\Foo', ["    App\\Foo:\n", "        autowire: true"]),
+            ],
+            remainder: [],
+        );
+
+        $output = $this->sorter->sort($parsedFile);
+
+        self::assertSame(
+            "services:\n    App\\Foo:\n        autowire: true\n",
+            $output,
+        );
+    }
+
+    public function testStableSortOrdersDifferentKeysCorrectly(): void
+    {
+        $parsedFile = new ParsedFile(
+            preamble: [],
+            servicesHeader: "services:\n",
+            chunks: [
+                new ServiceChunk('App\\Zebra', ["    App\\Zebra:\n", "        autowire: true\n"]),
+                new ServiceChunk('App\\Alpha', ["    App\\Alpha:\n", "        autowire: true\n"]),
+                new ServiceChunk('App\\ReadModel', ["    App\\ReadModel:\n", "        autowire: true\n"]),
+            ],
+            remainder: [],
+        );
+
+        $output = $this->sorter->sort($parsedFile);
+
+        self::assertSame(
+            "services:\n"
+            . "    App\\Alpha:\n"
+            . "        autowire: true\n"
+            . "\n"
+            . "    App\\ReadModel:\n"
             . "        autowire: true\n"
             . "\n"
             . "    App\\Zebra:\n"
