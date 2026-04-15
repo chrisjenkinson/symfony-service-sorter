@@ -7,6 +7,7 @@ namespace App\Tests\Unit\Sorter;
 use App\Parser\ParsedFile;
 use App\Parser\ServiceChunk;
 use App\Sorter\ServiceKeyNormalizer;
+use App\Sorter\ServiceKeySorter;
 use App\Sorter\ServicesSorter;
 use PHPUnit\Framework\TestCase;
 
@@ -16,7 +17,7 @@ final class ServicesSorterTest extends TestCase
 
     protected function setUp(): void
     {
-        $this->sorter = new ServicesSorter(new ServiceKeyNormalizer());
+        $this->sorter = new ServicesSorter(new ServiceKeySorter(new ServiceKeyNormalizer()));
     }
 
     public function testSortsChunksAlphabetically(): void

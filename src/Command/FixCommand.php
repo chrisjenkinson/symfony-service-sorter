@@ -7,6 +7,7 @@ namespace App\Command;
 use App\IO\FileIO;
 use App\IO\FileIOException;
 use App\Parser\YamlServiceParser;
+use App\Sorter\DuplicateServiceKeyException;
 use App\Sorter\ServicesSorter;
 use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Command\Command;
@@ -17,10 +18,10 @@ use Symfony\Component\Console\Output\ConsoleOutputInterface;
 use Symfony\Component\Console\Output\OutputInterface;
 
 #[AsCommand(
-    name: 'sort-services',
-    description: 'Sorts entries in the services: key of a Symfony YAML file alphabetically',
+    name: 'fix',
+    description: 'Sorts services in a YAML file alphabetically and writes the result in-place',
 )]
-final class SortServicesCommand extends Command
+final class FixCommand extends Command
 {
     public function __construct(
         private readonly YamlServiceParser $parser,
@@ -34,7 +35,7 @@ final class SortServicesCommand extends Command
     {
         $this
             ->addArgument('file', InputArgument::REQUIRED, 'Path to the YAML file')
-            ->addOption('write', 'w', InputOption::VALUE_NONE, 'Write sorted output back to the file instead of stdout');
+            ->addOption('stdout', null, InputOption::VALUE_NONE, 'Write sorted YAML to stdout instead of modifying the file');
     }
 
     protected function execute(InputInterface $input, OutputInterface $output): int
@@ -62,19 +63,24 @@ final class SortServicesCommand extends Command
             ));
         }
 
-        $sorted = $this->sorter->sort($parsedFile);
+        try {
+            $sorted = $this->sorter->sort($parsedFile);
+        } catch (DuplicateServiceKeyException $e) {
+            $errorOutput->writeln(sprintf('<error>%s</error>', $e->getMessage()));
+            return Command::FAILURE;
+        }
 
-        if ($input->getOption('write')) {
-            try {
-                $this->fileIO->write($filePath, $sorted);
-            } catch (FileIOException $e) {
-                $errorOutput->writeln(sprintf('<error>%s</error>', $e->getMessage()));
-                return Command::FAILURE;
-            }
+        if ($input->getOption('stdout')) {
+            $output->write($sorted, false, OutputInterface::OUTPUT_RAW);
             return Command::SUCCESS;
         }
 
-        $output->write($sorted, false, OutputInterface::OUTPUT_RAW);
+        try {
+            $this->fileIO->write($filePath, $sorted);
+        } catch (FileIOException $e) {
+            $errorOutput->writeln(sprintf('<error>%s</error>', $e->getMessage()));
+            return Command::FAILURE;
+        }
 
         return Command::SUCCESS;
     }
