@@ -61,7 +61,7 @@ final class SortServicesCommandTest extends TestCase
         self::assertSame(0, $tester->getStatusCode());
     }
 
-    public function testFileNotFoundReturnsFailure(): void
+    public function testReadFailureReturnsFailure(): void
     {
         $this->fileIO->method('read')->willThrowException(new FileIOException('File not found: /missing.yaml'));
 
@@ -70,17 +70,6 @@ final class SortServicesCommandTest extends TestCase
 
         self::assertSame(1, $tester->getStatusCode());
         self::assertStringContainsString('File not found', $tester->getErrorOutput());
-    }
-
-    public function testReadFailureReturnsFailure(): void
-    {
-        $this->fileIO->method('read')->willThrowException(new FileIOException('Could not read file: /unreadable.yaml'));
-
-        $tester = $this->createCommandTester();
-        $tester->execute(['file' => '/unreadable.yaml'], ['capture_stderr_separately' => true]);
-
-        self::assertSame(1, $tester->getStatusCode());
-        self::assertStringContainsString('Could not read file', $tester->getErrorOutput());
     }
 
     public function testWriteFailureReturnsFailure(): void
