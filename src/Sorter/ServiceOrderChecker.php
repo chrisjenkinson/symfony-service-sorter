@@ -21,7 +21,7 @@ final class ServiceOrderChecker
     {
         $originalKeys = array_map(fn (ServiceChunk $chunk): string => $chunk->key, $parsedFile->chunks);
 
-        if (count($originalKeys) <= 1) {
+        if ($originalKeys === []) {
             return [];
         }
 
@@ -42,7 +42,7 @@ final class ServiceOrderChecker
 
             $predecessor = $predecessorInSorted[$key];
 
-            if ($originalPosition[$key] < $originalPosition[$predecessor]) {
+            if ($originalPosition[$key] !== $originalPosition[$predecessor] && $originalPosition[$key] < $originalPosition[$predecessor]) {
                 $outOfOrder[] = new OutOfOrderEntry($key, $predecessor);
             }
         }

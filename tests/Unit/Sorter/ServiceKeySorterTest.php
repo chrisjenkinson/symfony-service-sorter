@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Tests\Unit\Sorter;
 
+use App\Parser\ServiceChunk;
 use App\Sorter\DuplicateServiceKeyException;
 use App\Sorter\ServiceKeyNormalizer;
 use App\Sorter\ServiceKeySorter;
@@ -45,5 +46,18 @@ final class ServiceKeySorterTest extends TestCase
         $result = $this->keySorter->sortKeys(['App\\Bar', 'App\\Foo']);
 
         self::assertSame(['App\\Bar', 'App\\Foo'], $result);
+    }
+
+    public function testSortChunksStableSortsWithEqualNormalizedKeys(): void
+    {
+        $chunks = [
+            new ServiceChunk('app.read_model', ["    app.read_model:\n", "        class: Foo\n"]),
+            new ServiceChunk('App\\ReadModel', ["    App\\ReadModel:\n", "        class: Bar\n"]),
+        ];
+
+        $result = $this->keySorter->sortChunks($chunks);
+
+        self::assertSame('app.read_model', $result[0]->key);
+        self::assertSame('App\\ReadModel', $result[1]->key);
     }
 }

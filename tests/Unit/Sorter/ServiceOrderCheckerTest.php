@@ -217,4 +217,20 @@ final class ServiceOrderCheckerTest extends TestCase
         self::assertSame('Z', $result[0]->key);
         self::assertSame('A', $result[0]->predecessor);
     }
+
+    public function testSingleServiceIsNotFlaggedEvenWithoutGuard(): void
+    {
+        $parsedFile = new ParsedFile(
+            preamble: [],
+            servicesHeader: "services:\n",
+            chunks: [
+                new ServiceChunk('App\\Foo', ["    App\\Foo:\n"]),
+            ],
+            remainder: [],
+        );
+
+        $result = $this->checker->check($parsedFile);
+
+        self::assertSame([], $result);
+    }
 }

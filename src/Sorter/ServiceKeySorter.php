@@ -77,15 +77,14 @@ final class ServiceKeySorter
      */
     private function assertNoDuplicateKeys(array $keys): void
     {
-        $seen = [];
-        foreach ($keys as $key) {
-            if (isset($seen[$key])) {
+        $counts = array_count_values($keys);
+        foreach ($counts as $key => $count) {
+            if ($count > 1) {
                 throw new DuplicateServiceKeyException(sprintf(
                     'Duplicate service key found: "%s"',
                     $key,
                 ));
             }
-            $seen[$key] = true;
         }
     }
 

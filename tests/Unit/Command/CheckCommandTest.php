@@ -56,6 +56,7 @@ final class CheckCommandTest extends TestCase
         $tester->execute(['file' => '/path/to/services.yaml'], ['capture_stderr_separately' => true]);
 
         self::assertSame(1, $tester->getStatusCode());
+        self::assertStringContainsString('The following services are not in alphabetical order', $tester->getErrorOutput());
         self::assertStringContainsString('App\\ZebraService', $tester->getErrorOutput());
         self::assertStringContainsString('App\\AlphaService', $tester->getErrorOutput());
         self::assertStringContainsString('should come after', $tester->getErrorOutput());
@@ -82,6 +83,7 @@ final class CheckCommandTest extends TestCase
 
         self::assertSame(0, $tester->getStatusCode());
         self::assertStringContainsString('no services: key found', $tester->getErrorOutput());
+        self::assertStringNotContainsString('All services are in order', $tester->getDisplay());
     }
 
     public function testEmptyServicesBlockExitsZero(): void
