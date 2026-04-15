@@ -12,6 +12,7 @@ use App\Sorter\ServiceKeyNormalizer;
 use App\Sorter\ServiceOrderChecker;
 use App\Sorter\ServicesSorter;
 use PHPUnit\Framework\Attributes\DataProvider;
+use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
 use Symfony\Component\Console\Tester\CommandTester;
 
@@ -20,7 +21,7 @@ final class CLIIntegrationTest extends TestCase
     private YamlServiceParser $parser;
     private ServicesSorter $sorter;
     private ServiceOrderChecker $checker;
-    private FileIO&\PHPUnit\Framework\MockObject\MockObject $fileIO;
+    private FileIO&MockObject $fileIO;
 
     protected function setUp(): void
     {

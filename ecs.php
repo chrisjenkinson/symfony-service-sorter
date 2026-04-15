@@ -10,4 +10,7 @@ return ECSConfig::configure()
         __DIR__ . '/tests',
         __DIR__ . '/bin',
     ])
-    ->withPreparedSets(psr12: true);
+    ->withPreparedSets(psr12: true)
+    ->withConfiguredRule(\PhpCsFixer\Fixer\Import\FullyQualifiedStrictTypesFixer::class, [
+        'import_symbols' => true,
+    ]);

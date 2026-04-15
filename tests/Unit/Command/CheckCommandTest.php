@@ -10,6 +10,7 @@ use App\IO\FileIOException;
 use App\Parser\YamlServiceParser;
 use App\Sorter\ServiceKeyNormalizer;
 use App\Sorter\ServiceOrderChecker;
+use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
 use Symfony\Component\Console\Tester\CommandTester;
 
@@ -17,7 +18,7 @@ final class CheckCommandTest extends TestCase
 {
     private YamlServiceParser $parser;
     private ServiceOrderChecker $checker;
-    private FileIO&\PHPUnit\Framework\MockObject\MockObject $fileIO;
+    private FileIO&MockObject $fileIO;
 
     protected function setUp(): void
     {
