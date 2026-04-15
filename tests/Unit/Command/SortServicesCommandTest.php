@@ -52,7 +52,7 @@ final class SortServicesCommandTest extends TestCase
         $input = "services:\n    App\\ZebraService:\n        autowire: true\n    App\\AlphaService:\n        autowire: true\n";
         $this->fileIO->method('read')->willReturn($input);
 
-        $expectedSorted = $this->sorter->sort($this->parser->parse($input));
+        $expectedSorted = "services:\n    App\\AlphaService:\n        autowire: true\n\n    App\\ZebraService:\n        autowire: true\n";
         $this->fileIO->expects(self::once())->method('write')->with('/path/to/services.yaml', $expectedSorted);
 
         $tester = $this->createCommandTester();
