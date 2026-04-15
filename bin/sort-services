@@ -5,14 +5,26 @@ declare(strict_types=1);
 
 require __DIR__ . '/../vendor/autoload.php';
 
-use App\Command\SortServicesCommand;
+use App\Command\CheckCommand;
+use App\Command\FixCommand;
 use App\IO\NativeFileIO;
 use App\Parser\YamlServiceParser;
 use App\Sorter\ServiceKeyNormalizer;
+use App\Sorter\ServiceOrderChecker;
 use App\Sorter\ServicesSorter;
 use Symfony\Component\Console\Application;
 
+$parser = new YamlServiceParser();
+$normalizer = new ServiceKeyNormalizer();
+
 $application = new Application('sort-services', '1.0.0');
-$application->addCommand(new SortServicesCommand(new YamlServiceParser(), new ServicesSorter(new ServiceKeyNormalizer()), new NativeFileIO()));
-$application->setDefaultCommand('sort-services', true);
+$application->addCommand(new CheckCommand($parser, new ServiceOrderChecker($normalizer), new NativeFileIO()));
+$application->addCommand(new FixCommand($parser, new ServicesSorter($normalizer), new NativeFileIO()));
+
+$commandNames = ['check', 'fix', 'list', 'help', 'completion'];
+if (isset($argv[1]) && !in_array($argv[1], $commandNames, true) && !str_starts_with($argv[1], '-')) {
+    array_splice($argv, 1, 0, ['check']);
+    $_SERVER['argv'] = $argv;
+}
+
 $application->run();
