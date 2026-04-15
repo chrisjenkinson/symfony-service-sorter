@@ -148,9 +148,7 @@ final class CLIIntegrationTest extends TestCase
         self::assertStringContainsString('All services are in order', $tester->getDisplay());
     }
 
-    /**
-     * @dataProvider fixtureProvider
-     */
+    #[\PHPUnit\Framework\Attributes\DataProvider('fixtureProvider')]
     public function testFixStdoutMatchesExpected(string $fixtureName): void
     {
         $input = $this->readFixture($fixtureName . '/input.yaml');

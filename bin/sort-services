@@ -20,11 +20,4 @@ $normalizer = new ServiceKeyNormalizer();
 $application = new Application('sort-services', '1.0.0');
 $application->addCommand(new CheckCommand($parser, new ServiceOrderChecker($normalizer), new NativeFileIO()));
 $application->addCommand(new FixCommand($parser, new ServicesSorter($normalizer), new NativeFileIO()));
-
-$commandNames = ['check', 'fix', 'list', 'help', 'completion'];
-if (isset($argv[1]) && !in_array($argv[1], $commandNames, true) && !str_starts_with($argv[1], '-')) {
-    array_splice($argv, 1, 0, ['check']);
-    $_SERVER['argv'] = $argv;
-}
-
 $application->run();

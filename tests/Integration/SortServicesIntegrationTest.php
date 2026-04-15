@@ -20,9 +20,7 @@ final class SortServicesIntegrationTest extends TestCase
         $this->sorter = new ServicesSorter(new ServiceKeyNormalizer());
     }
 
-    /**
-     * @dataProvider fixtureProvider
-     */
+    #[\PHPUnit\Framework\Attributes\DataProvider('fixtureProvider')]
     public function testFixture(string $fixtureName): void
     {
         $fixtureDir = __DIR__ . '/../fixtures/' . $fixtureName;
