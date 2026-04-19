@@ -15,6 +15,7 @@ final class ParsedFile
      * @param string       $servicesHeader  The "services:\n" line itself
      * @param list<ServiceChunk> $chunks
      * @param list<string> $remainder       Lines after the services block
+     * @param list<array{name:string,chunks:list<ServiceChunk>}> $groups  Boundary comment groups
      */
     public function __construct(
         public readonly array $preamble,
@@ -22,6 +23,7 @@ final class ParsedFile
         /** @var list<ServiceChunk> */
         public readonly array $chunks,
         public readonly array $remainder,
+        public readonly array $groups = [],
     ) {
     }
 }
