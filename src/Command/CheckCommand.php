@@ -6,6 +6,7 @@ namespace App\Command;
 
 use App\IO\FileIO;
 use App\IO\FileIOException;
+use App\Parser\AmbiguousCommentException;
 use App\Parser\YamlServiceParser;
 use App\Sorter\DuplicateServiceKeyException;
 use App\Sorter\ServiceOrderChecker;
@@ -51,7 +52,12 @@ final class CheckCommand extends Command
             return Command::FAILURE;
         }
 
-        $parsedFile = $this->parser->parse($content);
+        try {
+            $parsedFile = $this->parser->parse($content);
+        } catch (AmbiguousCommentException $e) {
+            $errorOutput->writeln(sprintf('<error>%s</error>', $e->getMessage()));
+            return Command::FAILURE;
+        }
 
         if ($parsedFile->servicesHeader === '') {
             $errorOutput->writeln(sprintf(
