@@ -15,7 +15,7 @@ final class ParsedFile
      * @param string       $servicesHeader  The "services:\n" line itself
      * @param list<ServiceChunk> $chunks
      * @param list<string> $remainder       Lines after the services block
-     * @param list<array{name:string,chunks:list<ServiceChunk>}> $groups  Boundary comment groups
+     * @param list<ServiceGroup> $groups     Boundary comment groups
      * @param list<ClassifiedComment> $classifiedComments Classified comments from services block
      */
     public function __construct(

@@ -40,6 +40,7 @@ final class YamlServiceParser
         [$chunks, $remainder] = $this->extractChunks($blockLines, $blockIndent);
 
         $classifiedComments = $this->classifyComments($chunks);
+        $groups = $this->buildGroups($chunks, $classifiedComments);
 
         return new ParsedFile(
             preamble: $preamble,
@@ -47,6 +48,7 @@ final class YamlServiceParser
             chunks: $chunks,
             remainder: $remainder,
             classifiedComments: $classifiedComments,
+            groups: $groups,
         );
     }
 
@@ -363,5 +365,47 @@ final class YamlServiceParser
             return CommentType::ImmediatelyAfter;
         }
         return CommentType::Ambiguous;
+    }
+
+    /**
+     * @param list<ServiceChunk> $chunks
+     * @param list<ClassifiedComment> $classifiedComments
+     * @return list<ServiceGroup>
+     */
+    private function buildGroups(array $chunks, array $classifiedComments): array
+    {
+        $boundaryMap = [];
+        foreach ($classifiedComments as $cc) {
+            if ($cc->type === CommentType::Boundary) {
+                $boundaryMap[$cc->nextServiceKey] = $cc;
+            }
+        }
+
+        $groups = [];
+        $currentGroupChunks = [];
+        $currentBoundary = null;
+
+        foreach ($chunks as $chunk) {
+            if (isset($boundaryMap[$chunk->key])) {
+                if ($currentGroupChunks !== []) {
+                    $groups[] = new ServiceGroup($currentBoundary, $currentGroupChunks);
+                }
+                $currentBoundary = $boundaryMap[$chunk->key];
+                $currentGroupChunks = [];
+            }
+            $currentGroupChunks[] = $chunk;
+        }
+
+        if ($currentGroupChunks !== []) {
+            $groups[] = new ServiceGroup($currentBoundary, $currentGroupChunks);
+        }
+
+        usort($groups, function (ServiceGroup $a, ServiceGroup $b): int {
+            $aFirstKey = isset($a->chunks[0]) ? $a->chunks[0]->key : '';
+            $bFirstKey = isset($b->chunks[0]) ? $b->chunks[0]->key : '';
+            return $aFirstKey <=> $bFirstKey;
+        });
+
+        return $groups;
     }
 }
