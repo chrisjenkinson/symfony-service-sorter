@@ -237,4 +237,28 @@ final class YamlServiceParserTest extends TestCase
 
         self::assertNotEmpty($result->chunks);
     }
+
+    public function testTrackBlankLinesAroundComment(): void
+    {
+        $yaml = <<<YAML
+services:
+    # A comment
+
+    App\Foo:
+        autowire: true
+
+    # Another comment
+
+
+    App\Bar:
+        autowire: true
+YAML;
+
+        $result = $this->parser->parse($yaml);
+
+        self::assertCount(2, $result->chunks);
+        $firstChunk = implode('', $result->chunks[0]->lines);
+        self::assertStringContainsString('# A comment', $firstChunk);
+        self::assertStringContainsString('# Another comment', implode('', $result->chunks[1]->lines));
+    }
 }
