@@ -262,6 +262,10 @@ final class YamlServiceParser
                 blankLinesAfter: $blankAfter,
             );
 
+            if ($this->classifyByBlankCounts($blankBefore, $blankAfter) === CommentType::Ambiguous) {
+                throw new AmbiguousCommentException($prevKey ?? '', $chunk->key);
+            }
+
             $prevTrailingBlanks = $this->countTrailingBlankLines($chunk->lines);
             $prevKey = $chunk->key;
         }

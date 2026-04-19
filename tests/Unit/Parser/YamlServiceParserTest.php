@@ -50,7 +50,7 @@ final class YamlServiceParserTest extends TestCase
 
     public function testCommentTravelsWithFollowingChunk(): void
     {
-        $yaml = "services:\n    # This is Foo\n    App\\Foo:\n        autowire: true\n";
+        $yaml = "services:\n\n    # This is Foo\n    App\\Foo:\n        autowire: true\n";
 
         $result = $this->parser->parse($yaml);
 
