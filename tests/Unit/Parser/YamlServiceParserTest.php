@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Tests\Unit\Parser;
 
+use App\Parser\CommentType;
 use App\Parser\YamlServiceParser;
 use PHPUnit\Framework\TestCase;
 
@@ -260,5 +261,114 @@ YAML;
         $firstChunk = implode('', $result->chunks[0]->lines);
         self::assertStringContainsString('# A comment', $firstChunk);
         self::assertStringContainsString('# Another comment', implode('', $result->chunks[1]->lines));
+    }
+
+    public function testCommentWithBlanksBeforeAndAfterIsBoundary(): void
+    {
+        $yaml = <<<YAML
+services:
+
+    # Boundary comment
+
+    App\Foo:
+        autowire: true
+YAML;
+
+        $result = $this->parser->parse($yaml);
+
+        self::assertCount(1, $result->classifiedComments);
+        self::assertSame(CommentType::Boundary, $result->classifiedComments[0]->type);
+    }
+
+    public function testCommentWithBlankBeforeOnlyIsImmediatelyBefore(): void
+    {
+        $yaml = <<<YAML
+services:
+    App\Bar:
+        autowire: true
+
+    # Immediately before comment
+    App\Foo:
+        autowire: true
+YAML;
+
+        $result = $this->parser->parse($yaml);
+
+        self::assertCount(1, $result->classifiedComments);
+        self::assertSame(CommentType::ImmediatelyBefore, $result->classifiedComments[0]->type);
+    }
+
+    public function testCommentWithBlankAfterOnlyIsImmediatelyAfter(): void
+    {
+        $yaml = <<<YAML
+services:
+    # Immediately after comment
+
+    App\Foo:
+        autowire: true
+YAML;
+
+        $result = $this->parser->parse($yaml);
+
+        self::assertCount(1, $result->classifiedComments);
+        self::assertSame(CommentType::ImmediatelyAfter, $result->classifiedComments[0]->type);
+    }
+
+    public function testMultipleClassifiedComments(): void
+    {
+        $yaml = <<<YAML
+services:
+    App\Foo:
+        autowire: true
+    # After comment
+
+    App\Bar:
+        autowire: true
+
+    # Boundary comment
+
+    App\Baz:
+        autowire: true
+YAML;
+
+        $result = $this->parser->parse($yaml);
+
+        self::assertCount(2, $result->classifiedComments);
+        self::assertSame(CommentType::ImmediatelyAfter, $result->classifiedComments[0]->type);
+        self::assertSame(CommentType::Boundary, $result->classifiedComments[1]->type);
+    }
+
+    public function testClassifiedCommentStoresServiceKeys(): void
+    {
+        $yaml = <<<YAML
+services:
+
+    # Boundary comment
+
+    App\Foo:
+        autowire: true
+YAML;
+
+        $result = $this->parser->parse($yaml);
+
+        self::assertSame(null, $result->classifiedComments[0]->prevServiceKey);
+        self::assertSame('App\Foo', $result->classifiedComments[0]->nextServiceKey);
+    }
+
+    public function testClassifiedCommentStoresBlankLineCounts(): void
+    {
+        $yaml = <<<YAML
+services:
+
+    # Boundary comment
+
+    App\Foo:
+        autowire: true
+YAML;
+
+        $result = $this->parser->parse($yaml);
+
+        self::assertSame(1, $result->classifiedComments[0]->blankLinesBefore);
+        self::assertSame(1, $result->classifiedComments[0]->blankLinesAfter);
     }
 }

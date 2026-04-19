@@ -39,11 +39,14 @@ final class YamlServiceParser
 
         [$chunks, $remainder] = $this->extractChunks($blockLines, $blockIndent);
 
+        $classifiedComments = $this->classifyComments($chunks);
+
         return new ParsedFile(
             preamble: $preamble,
             servicesHeader: $servicesHeader,
             chunks: $chunks,
             remainder: $remainder,
+            classifiedComments: $classifiedComments,
         );
     }
 
@@ -215,5 +218,146 @@ final class YamlServiceParser
         }
 
         return [$chunks, $remainder];
+    }
+
+    /**
+     * @param list<ServiceChunk> $chunks
+     * @return list<ClassifiedComment>
+     */
+    private function classifyComments(array $chunks): array
+    {
+        $classifiedComments = [];
+        $prevKey = null;
+        $prevTrailingBlanks = 0;
+
+        for ($i = 0; $i < count($chunks); $i++) {
+            $chunk = $chunks[$i];
+            $comment = $this->extractLeadingComment($chunk->lines);
+
+            if ($comment === null) {
+                $prevTrailingBlanks = $this->countTrailingBlankLines($chunk->lines);
+                $prevKey = $chunk->key;
+                continue;
+            }
+
+            $blankBefore = $this->countBlankLinesBeforeComment($chunk->lines, $comment);
+            if ($blankBefore === 0 && $i > 0) {
+                $blankBefore = $prevTrailingBlanks;
+            }
+
+            $blankAfter = $this->countBlankLinesAfterComment($chunk->lines, $comment);
+            if ($i < count($chunks) - 1) {
+                $nextChunk = $chunks[$i + 1];
+                if ($this->extractLeadingComment($nextChunk->lines) === null) {
+                    $blankAfter = $this->countTrailingBlankLines($chunk->lines);
+                }
+            }
+
+            $classifiedComments[] = new ClassifiedComment(
+                type: $this->classifyByBlankCounts($blankBefore, $blankAfter),
+                line: $comment,
+                prevServiceKey: $prevKey,
+                nextServiceKey: $chunk->key,
+                blankLinesBefore: $blankBefore,
+                blankLinesAfter: $blankAfter,
+            );
+
+            $prevTrailingBlanks = $this->countTrailingBlankLines($chunk->lines);
+            $prevKey = $chunk->key;
+        }
+
+        return $classifiedComments;
+    }
+
+    /**
+     * @param list<string> $lines
+     */
+    private function countTrailingBlankLines(array $lines): int
+    {
+        $blankCount = 0;
+        for ($i = count($lines) - 1; $i >= 0; $i--) {
+            if (rtrim($lines[$i]) === '') {
+                $blankCount++;
+            } else {
+                break;
+            }
+        }
+        return $blankCount;
+    }
+
+    /**
+     * @param list<string> $lines
+     */
+    private function extractLeadingComment(array $lines): ?string
+    {
+        foreach ($lines as $line) {
+            $trimmed = ltrim($line, " \t");
+            if (str_starts_with($trimmed, '#')) {
+                return rtrim($line);
+            }
+            if (rtrim($line) !== '') {
+                break;
+            }
+        }
+        return null;
+    }
+
+    /**
+     * @param list<string> $lines
+     */
+    private function countBlankLinesBeforeComment(array $lines, string $comment): int
+    {
+        $blankCount = 0;
+        foreach ($lines as $line) {
+            $trimmed = ltrim($line, " \t");
+            if (str_starts_with($trimmed, '#')) {
+                break;
+            }
+            if (rtrim($line) === '') {
+                $blankCount++;
+            }
+        }
+        return $blankCount;
+    }
+
+    /**
+     * @param list<string> $lines
+     */
+    private function countBlankLinesAfterComment(array $lines, string $comment): int
+    {
+        $blankCount = 0;
+        $foundComment = false;
+
+        foreach ($lines as $line) {
+            if (!$foundComment) {
+                if (rtrim($line) === rtrim($comment)) {
+                    $foundComment = true;
+                }
+                continue;
+            }
+
+            $trimmed = ltrim($line, " \t");
+            if ($trimmed === '' || $trimmed === "\n") {
+                $blankCount++;
+            } else {
+                break;
+            }
+        }
+
+        return $blankCount;
+    }
+
+    private function classifyByBlankCounts(int $blankBefore, int $blankAfter): CommentType
+    {
+        if ($blankBefore >= 1 && $blankAfter >= 1) {
+            return CommentType::Boundary;
+        }
+        if ($blankBefore >= 1 && $blankAfter === 0) {
+            return CommentType::ImmediatelyBefore;
+        }
+        if ($blankBefore === 0 && $blankAfter >= 1) {
+            return CommentType::ImmediatelyAfter;
+        }
+        return CommentType::Ambiguous;
     }
 }

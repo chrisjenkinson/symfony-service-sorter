@@ -16,6 +16,7 @@ final class ParsedFile
      * @param list<ServiceChunk> $chunks
      * @param list<string> $remainder       Lines after the services block
      * @param list<array{name:string,chunks:list<ServiceChunk>}> $groups  Boundary comment groups
+     * @param list<ClassifiedComment> $classifiedComments Classified comments from services block
      */
     public function __construct(
         public readonly array $preamble,
@@ -24,6 +25,7 @@ final class ParsedFile
         public readonly array $chunks,
         public readonly array $remainder,
         public readonly array $groups = [],
+        public readonly array $classifiedComments = [],
     ) {
     }
 }
