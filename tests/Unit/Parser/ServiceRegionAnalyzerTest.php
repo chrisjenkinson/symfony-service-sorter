@@ -111,4 +111,188 @@ final class ServiceRegionAnalyzerTest extends TestCase
             $descriptions,
         );
     }
+
+    public function testAnalyzeDoesNotTreatImmediateBeforeCommentAsBoundary(): void
+    {
+        $analyzer = new ServiceRegionAnalyzer(
+            new ServiceBlockLineClassifier(),
+            new ServiceRegionDetector(),
+        );
+
+        $chunks = [
+            new ServiceChunk('App\Alpha', ["    App\\Alpha:\n", "        autowire: true\n"]),
+            new ServiceChunk('App\Bravo', [
+                "\n",
+                "    # note\n",
+                "    App\\Bravo:\n",
+                "        autowire: true\n",
+            ]),
+        ];
+
+        $descriptions = [
+            new ChunkDescription($chunks[0], 0, null, [], [0 => 'App\Alpha', 1 => 'App\Alpha'], 0, 0),
+            new ChunkDescription($chunks[1], 4, '    # note', [3], [4 => 'App\Bravo', 5 => 'App\Bravo'], 1, 0),
+        ];
+
+        $result = $analyzer->analyze(
+            "services:\n",
+            [
+                "    App\\Alpha:\n",
+                "        autowire: true\n",
+                "\n",
+                "    # note\n",
+                "    App\\Bravo:\n",
+                "        autowire: true\n",
+            ],
+            '    ',
+            $chunks,
+            $descriptions,
+        );
+
+        self::assertCount(1, $result['classifiedComments']);
+        self::assertSame(CommentType::ImmediatelyBefore, $result['classifiedComments'][0]->type);
+        self::assertSame('App\Alpha', $result['classifiedComments'][0]->prevServiceKey);
+        self::assertSame('App\Bravo', $result['classifiedComments'][0]->nextServiceKey);
+    }
+
+    public function testAnalyzeSortsGroupsByFirstChunkKey(): void
+    {
+        $analyzer = new ServiceRegionAnalyzer(
+            new ServiceBlockLineClassifier(),
+            new ServiceRegionDetector(),
+        );
+
+        $chunks = [
+            new ServiceChunk('Zulu', [
+                "\n",
+                "    # zulu boundary\n",
+                "\n",
+                "    Zulu:\n",
+                "        autowire: true\n",
+            ]),
+            new ServiceChunk('Beta', [
+                "\n",
+                "    # beta boundary\n",
+                "\n",
+                "    Beta:\n",
+                "        autowire: true\n",
+            ]),
+            new ServiceChunk('_defaults', [
+                "    _defaults:\n",
+                "        autowire: true\n",
+            ]),
+        ];
+
+        $descriptions = [
+            new ChunkDescription($chunks[0], 3, '    # zulu boundary', [1], [3 => 'Zulu', 4 => 'Zulu'], 1, 1),
+            new ChunkDescription($chunks[1], 8, '    # beta boundary', [6], [8 => 'Beta', 9 => 'Beta'], 1, 1),
+            new ChunkDescription($chunks[2], 10, null, [], [10 => '_defaults', 11 => '_defaults'], 0, 0),
+        ];
+
+        $result = $analyzer->analyze(
+            "services:\n",
+            [
+                "\n",
+                "    # zulu boundary\n",
+                "\n",
+                "    Zulu:\n",
+                "        autowire: true\n",
+                "\n",
+                "    # beta boundary\n",
+                "\n",
+                "    Beta:\n",
+                "        autowire: true\n",
+                "    _defaults:\n",
+                "        autowire: true\n",
+            ],
+            '    ',
+            $chunks,
+            $descriptions,
+        );
+
+        self::assertCount(2, $result['groups']);
+        self::assertSame('Beta', $result['groups'][0]->chunks[0]->key);
+        self::assertSame('_defaults', $result['groups'][0]->chunks[1]->key);
+        self::assertSame('Zulu', $result['groups'][1]->chunks[0]->key);
+        self::assertSame('    # beta boundary', $result['groups'][0]->boundaryComment?->line);
+        self::assertSame('    # zulu boundary', $result['groups'][1]->boundaryComment?->line);
+    }
+
+    public function testAnalyzeTreatsCommentAsNonBoundaryWhenNoMatchingRegionExists(): void
+    {
+        $analyzer = new ServiceRegionAnalyzer(
+            new ServiceBlockLineClassifier(),
+            new ServiceRegionDetector(),
+        );
+
+        $chunks = [
+            new ServiceChunk('App\Alpha', [
+                "    # orphan comment\n",
+                "    App\\Alpha:\n",
+                "        autowire: true\n",
+            ]),
+        ];
+
+        $descriptions = [
+            new ChunkDescription($chunks[0], 99, '    # orphan comment', [0], [1 => 'App\Alpha', 2 => 'App\Alpha'], 0, 0),
+        ];
+
+        $result = $analyzer->analyze(
+            "services:\n",
+            [
+                "    # orphan comment\n",
+                "    App\\Alpha:\n",
+                "        autowire: true\n",
+            ],
+            '    ',
+            $chunks,
+            $descriptions,
+        );
+
+        self::assertCount(1, $result['classifiedComments']);
+        self::assertSame(CommentType::ImmediatelyAfter, $result['classifiedComments'][0]->type);
+    }
+
+    public function testAnalyzeRequiresBoundaryCommentIndexToMatchLeadingCommentLines(): void
+    {
+        $analyzer = new ServiceRegionAnalyzer(
+            new ServiceBlockLineClassifier(),
+            new ServiceRegionDetector(),
+        );
+
+        $chunks = [
+            new ServiceChunk('App\Alpha', ["    App\\Alpha:\n", "        autowire: true\n"]),
+            new ServiceChunk('App\Bravo', [
+                "\n",
+                "    # not-mapped-as-boundary\n",
+                "\n",
+                "    App\\Bravo:\n",
+                "        autowire: true\n",
+            ]),
+        ];
+
+        $descriptions = [
+            new ChunkDescription($chunks[0], 0, null, [], [0 => 'App\Alpha', 1 => 'App\Alpha'], 0, 0),
+            new ChunkDescription($chunks[1], 4, '    # not-mapped-as-boundary', [], [4 => 'App\Bravo', 5 => 'App\Bravo'], 1, 1),
+        ];
+
+        $result = $analyzer->analyze(
+            "services:\n",
+            [
+                "    App\\Alpha:\n",
+                "        autowire: true\n",
+                "\n",
+                "    # not-mapped-as-boundary\n",
+                "\n",
+                "    App\\Bravo:\n",
+                "        autowire: true\n",
+            ],
+            '    ',
+            $chunks,
+            $descriptions,
+        );
+
+        self::assertCount(1, $result['classifiedComments']);
+        self::assertSame(CommentType::ImmediatelyBefore, $result['classifiedComments'][0]->type);
+    }
 }

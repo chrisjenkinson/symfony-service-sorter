@@ -188,4 +188,29 @@ final class ServiceChunkExtractorTest extends TestCase
         self::assertCount(1, $result['descriptions']);
         self::assertSame(1, $result['descriptions'][0]->blankLinesAfter);
     }
+
+    public function testCommentOnlyTailBecomesRemainderAtEndOfExtraction(): void
+    {
+        $extractor = new ServiceChunkExtractor();
+
+        $result = $extractor->extract(
+            [
+                "    App\\Alpha:\n",
+                "        autowire: true\n",
+                "\n",
+                "    # trailing note\n",
+                "\n",
+            ],
+            '    ',
+        );
+
+        self::assertCount(1, $result['chunks']);
+        self::assertSame(
+            [
+                "    # trailing note\n",
+                "\n",
+            ],
+            $result['remainder'],
+        );
+    }
 }
