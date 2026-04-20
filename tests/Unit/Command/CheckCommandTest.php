@@ -74,6 +74,22 @@ final class CheckCommandTest extends TestCase
         self::assertStringContainsString('should come after', $tester->getErrorOutput());
     }
 
+    public function testUnsortedFileWithoutGroupedRunDoesNotMentionZeroSubsequentServices(): void
+    {
+        $input = "services:\n    App\\ZebraService:\n        autowire: true\n    App\\AlphaService:\n        autowire: true\n";
+        $this->fileIO->method('read')->willReturn($input);
+
+        $tester = $this->createCommandTester();
+        $tester->execute(['file' => '/path/to/services.yaml'], ['capture_stderr_separately' => true]);
+
+        self::assertSame(1, $tester->getStatusCode());
+        self::assertStringContainsString(
+            'App\\ZebraService should come after App\\AlphaService',
+            $tester->getErrorOutput(),
+        );
+        self::assertStringNotContainsString('(and 0 subsequent services)', $tester->getErrorOutput());
+    }
+
     public function testUnsortedFileReportsGroupedSubsequentServices(): void
     {
         $input = <<<YAML

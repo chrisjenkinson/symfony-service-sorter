@@ -52,4 +52,28 @@ final class ServiceBlockLineClassifierTest extends TestCase
         $result = $this->classifier->classify('        autowire: true');
         self::assertSame(LineType::Service, $result);
     }
+
+    public function testClassifiesTopLevelSiblingLineWithTrailingNewline(): void
+    {
+        $result = $this->classifier->classify("parameters:\n");
+        self::assertSame(LineType::TopLevelSibling, $result);
+    }
+
+    public function testDoesNotClassifyIndentedBlockAsTopLevelSibling(): void
+    {
+        $result = $this->classifier->classify('    parameters:');
+        self::assertSame(LineType::Service, $result);
+    }
+
+    public function testDoesNotClassifyHeaderWithTrailingContentAsTopLevelSibling(): void
+    {
+        $result = $this->classifier->classify('parameters: # comment');
+        self::assertSame(LineType::Service, $result);
+    }
+
+    public function testClassifiesServicesHeaderWithTrailingWhitespace(): void
+    {
+        $result = $this->classifier->classify('services:   ');
+        self::assertSame(LineType::ServicesHeader, $result);
+    }
 }

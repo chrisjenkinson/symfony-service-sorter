@@ -38,7 +38,7 @@ final class ServicesBlockExtractor
             'servicesHeader' => $lines[$servicesLineIndex],
             'blockLines' => $blockLines,
             'blockIndent' => $blockIndent,
-            'emptyBlockRemainder' => $blockIndent === null ? $this->splitEmptyBlock($blockLines)[1] : [],
+            'emptyBlockRemainder' => $blockIndent === null ? $blockLines : [],
         ];
     }
 
@@ -92,28 +92,16 @@ final class ServicesBlockExtractor
                 continue;
             }
 
-            return substr($line, 0, strlen($line) - strlen($trimmed));
+            $indent = substr($line, 0, strlen($line) - strlen($trimmed));
+
+            if ($indent === '') {
+                return null;
+            }
+
+            return $indent;
         }
 
         return null;
     }
 
-    /**
-     * @param list<string> $lines
-     * @return array{list<string>, list<string>}
-     */
-    private function splitEmptyBlock(array $lines): array
-    {
-        foreach ($lines as $i => $line) {
-            $trimmed = ltrim($line, " \t");
-            if ($trimmed !== '' && $trimmed !== "\n" && !str_starts_with($trimmed, '#')) {
-                $indent = substr($line, 0, strlen($line) - strlen($trimmed));
-                if ($indent === '') {
-                    return [array_slice($lines, 0, $i), array_slice($lines, $i)];
-                }
-            }
-        }
-
-        return [$lines, []];
-    }
 }

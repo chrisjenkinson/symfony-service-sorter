@@ -21,6 +21,8 @@ final class ClassifiedCommentTest extends TestCase
         self::assertSame(CommentType::Boundary, $comment->type);
         self::assertSame('App\Foo', $comment->prevServiceKey);
         self::assertSame('App\Bar', $comment->nextServiceKey);
+        self::assertSame(0, $comment->blankLinesBefore);
+        self::assertSame(0, $comment->blankLinesAfter);
     }
 
     public function testClassifiedCommentCanBeCreatedWithoutServiceKeys(): void
@@ -34,5 +36,22 @@ final class ClassifiedCommentTest extends TestCase
         self::assertSame(CommentType::Boundary, $comment->type);
         self::assertNull($comment->prevServiceKey);
         self::assertNull($comment->nextServiceKey);
+        self::assertSame(0, $comment->blankLinesBefore);
+        self::assertSame(0, $comment->blankLinesAfter);
+    }
+
+    public function testClassifiedCommentStoresExplicitBlankLineCounts(): void
+    {
+        $comment = new ClassifiedComment(
+            CommentType::ImmediatelyBefore,
+            '    # note',
+            'App\Alpha',
+            'App\Bravo',
+            2,
+            1,
+        );
+
+        self::assertSame(2, $comment->blankLinesBefore);
+        self::assertSame(1, $comment->blankLinesAfter);
     }
 }
