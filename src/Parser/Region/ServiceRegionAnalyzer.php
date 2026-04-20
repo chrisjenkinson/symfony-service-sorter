@@ -198,7 +198,7 @@ final class ServiceRegionAnalyzer
     {
         $boundaryMap = [];
         foreach ($classifiedComments as $classifiedComment) {
-            if ($classifiedComment->type === CommentType::Boundary) {
+            if ($classifiedComment->type === CommentType::Boundary && $classifiedComment->nextServiceKey !== null) {
                 $boundaryMap[$classifiedComment->nextServiceKey] = $classifiedComment;
             }
         }
