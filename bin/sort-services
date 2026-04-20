@@ -19,6 +19,7 @@ use App\Sorter\ServiceKeySorter;
 use App\Sorter\ServiceOrderChecker;
 use App\Sorter\ServicesSorter;
 use Symfony\Component\Console\Application;
+use Symfony\Component\Console\Command\Command;
 
 $normalizer = new ServiceKeyNormalizer();
 $parser = new YamlServiceParser(
@@ -32,7 +33,7 @@ $parser = new YamlServiceParser(
 $keySorter = new ServiceKeySorter($normalizer);
 
 $application = new Application('sort-services', '1.0.0');
-$registerCommand = static function (Application $application, \Symfony\Component\Console\Command\Command $command): void {
+$registerCommand = static function (Application $application, Command $command): void {
     if (method_exists($application, 'addCommand')) {
         $application->addCommand($command);
 
