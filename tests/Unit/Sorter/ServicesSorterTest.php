@@ -101,7 +101,7 @@ final class ServicesSorterTest extends TestCase
         $output = $this->sorter->sort($parsedFile);
 
         self::assertStringContainsString("parameters:\n", $output);
-        self::assertStringContainsString("when@prod:", $output);
+        self::assertStringContainsString('when@prod:', $output);
         $parametersPos = strpos($output, 'parameters:');
         $servicesPos = strpos($output, 'services:');
         $whenPos = strpos($output, 'when@prod:');
@@ -168,7 +168,7 @@ final class ServicesSorterTest extends TestCase
             preamble: [],
             servicesHeader: "services:\n",
             chunks: [
-                new ServiceChunk('App\\Foo', ["    App\\Foo:\n", "        autowire: true"]),
+                new ServiceChunk('App\\Foo', ["    App\\Foo:\n", '        autowire: true']),
             ],
             remainder: [],
         );
