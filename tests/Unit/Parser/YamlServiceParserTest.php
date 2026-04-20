@@ -4,7 +4,13 @@ declare(strict_types=1);
 
 namespace App\Tests\Unit\Parser;
 
+use App\Parser\AmbiguousCommentException;
 use App\Parser\CommentType;
+use App\Parser\Extraction\ServiceChunkExtractor;
+use App\Parser\Extraction\ServicesBlockExtractor;
+use App\Parser\Region\ServiceBlockLineClassifier;
+use App\Parser\Region\ServiceRegionAnalyzer;
+use App\Parser\Region\ServiceRegionDetector;
 use App\Parser\YamlServiceParser;
 use PHPUnit\Framework\TestCase;
 
@@ -14,7 +20,14 @@ final class YamlServiceParserTest extends TestCase
 
     protected function setUp(): void
     {
-        $this->parser = new YamlServiceParser();
+        $this->parser = new YamlServiceParser(
+            new ServicesBlockExtractor(),
+            new ServiceChunkExtractor(),
+            new ServiceRegionAnalyzer(
+                new ServiceBlockLineClassifier(),
+                new ServiceRegionDetector(),
+            ),
+        );
     }
 
     public function testPreambleIsPreserved(): void
@@ -298,7 +311,22 @@ YAML;
         self::assertSame(CommentType::ImmediatelyBefore, $result->classifiedComments[0]->type);
     }
 
-    public function testCommentWithBlankAfterOnlyIsImmediatelyAfter(): void
+    public function testLeadingCommentWithoutBlankAttachesAsImmediatelyAfter(): void
+    {
+        $yaml = <<<YAML
+services:
+    # Leading comment
+    App\Foo:
+        autowire: true
+YAML;
+
+        $result = $this->parser->parse($yaml);
+
+        self::assertCount(1, $result->classifiedComments);
+        self::assertSame(CommentType::ImmediatelyAfter, $result->classifiedComments[0]->type);
+    }
+
+    public function testCommentWithBlankAfterOnlyIsBoundary(): void
     {
         $yaml = <<<YAML
 services:
@@ -311,7 +339,7 @@ YAML;
         $result = $this->parser->parse($yaml);
 
         self::assertCount(1, $result->classifiedComments);
-        self::assertSame(CommentType::ImmediatelyAfter, $result->classifiedComments[0]->type);
+        self::assertSame(CommentType::Boundary, $result->classifiedComments[0]->type);
     }
 
     public function testMultipleClassifiedComments(): void
@@ -334,8 +362,25 @@ YAML;
         $result = $this->parser->parse($yaml);
 
         self::assertCount(2, $result->classifiedComments);
-        self::assertSame(CommentType::ImmediatelyAfter, $result->classifiedComments[0]->type);
+        self::assertSame(CommentType::Boundary, $result->classifiedComments[0]->type);
         self::assertSame(CommentType::Boundary, $result->classifiedComments[1]->type);
+    }
+
+    public function testCommentImmediatelyAfterServiceWithoutBlankRaisesAmbiguousException(): void
+    {
+        $yaml = <<<YAML
+services:
+    App\Bar:
+        autowire: true
+    # Ambiguous comment
+    App\Foo:
+        autowire: true
+YAML;
+
+        $this->expectException(AmbiguousCommentException::class);
+        $this->expectExceptionMessage("Comment between 'App\\Bar' and 'App\\Foo' has no blank lines");
+
+        $this->parser->parse($yaml);
     }
 
     public function testClassifiedCommentStoresServiceKeys(): void
@@ -370,5 +415,25 @@ YAML;
 
         self::assertSame(1, $result->classifiedComments[0]->blankLinesBefore);
         self::assertSame(1, $result->classifiedComments[0]->blankLinesAfter);
+    }
+
+    public function testConsecutiveCommentsWithBlankBeforeAndAfterIsBoundary(): void
+    {
+        $yaml = <<<YAML
+services:
+    App\Zebra:
+        autowire: true
+
+    # comment one
+    # comment two
+
+    App\Alpha:
+        autowire: true
+YAML;
+
+        $result = $this->parser->parse($yaml);
+
+        self::assertCount(1, $result->classifiedComments);
+        self::assertSame(CommentType::Boundary, $result->classifiedComments[0]->type);
     }
 }
