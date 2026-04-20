@@ -26,6 +26,7 @@ final class ServiceOrderChecker
         }
 
         $sortedKeys = $this->keySorter->sortKeys($originalKeys);
+        $sortedPosition = array_flip($sortedKeys);
 
         $predecessorInSorted = [];
         for ($i = 1; $i < count($sortedKeys); $i++) {
@@ -43,10 +44,46 @@ final class ServiceOrderChecker
             $predecessor = $predecessorInSorted[$key];
 
             if ($originalPosition[$key] !== $originalPosition[$predecessor] && $originalPosition[$key] < $originalPosition[$predecessor]) {
-                $outOfOrder[] = new OutOfOrderEntry($key, $predecessor);
+                $outOfOrder[] = new OutOfOrderEntry(
+                    $key,
+                    $predecessor,
+                    $this->countSubsequentServicesInDisplacedRun(
+                        $originalKeys,
+                        $originalPosition[$key],
+                        $originalPosition[$predecessor],
+                        $sortedPosition,
+                    ),
+                );
             }
         }
 
         return $outOfOrder;
+    }
+
+    /**
+     * @param list<string> $originalKeys
+     * @param array<string, int> $sortedPosition
+     */
+    private function countSubsequentServicesInDisplacedRun(
+        array $originalKeys,
+        int $startIndex,
+        int $predecessorIndex,
+        array $sortedPosition,
+    ): int {
+        $count = 0;
+        $previousSortedIndex = $sortedPosition[$originalKeys[$startIndex]];
+
+        for ($i = $startIndex + 1; $i < $predecessorIndex; $i++) {
+            $currentSortedIndex = $sortedPosition[$originalKeys[$i]];
+
+            if ($currentSortedIndex !== $previousSortedIndex + 1) {
+                break;
+            }
+
+            $count++;
+            $previousSortedIndex = $currentSortedIndex;
+        }
+
+        return $count;
     }
 }

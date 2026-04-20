@@ -74,6 +74,37 @@ final class CheckCommandTest extends TestCase
         self::assertStringContainsString('should come after', $tester->getErrorOutput());
     }
 
+    public function testUnsortedFileReportsGroupedSubsequentServices(): void
+    {
+        $input = <<<YAML
+services:
+    App\Example\Echo:
+        autowire: true
+    App\Example\Foxtrot:
+        autowire: true
+    App\Example\Golf:
+        autowire: true
+    App\Example\Delta:
+        autowire: true
+    App\Example\Alpha:
+        autowire: true
+    App\Example\Bravo:
+        autowire: true
+    App\Example\Charlie:
+        autowire: true
+YAML;
+        $this->fileIO->method('read')->willReturn($input);
+
+        $tester = $this->createCommandTester();
+        $tester->execute(['file' => '/path/to/services.yaml'], ['capture_stderr_separately' => true]);
+
+        self::assertSame(1, $tester->getStatusCode());
+        self::assertStringContainsString(
+            'App\Example\Echo (and 2 subsequent services) should come after App\Example\Delta',
+            $tester->getErrorOutput(),
+        );
+    }
+
     public function testFileNotFoundExitsOne(): void
     {
         $this->fileIO->method('read')->willThrowException(new FileIOException('File not found: /missing.yaml'));

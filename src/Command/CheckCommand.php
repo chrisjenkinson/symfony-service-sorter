@@ -81,7 +81,18 @@ final class CheckCommand extends Command
 
         $errorOutput->writeln('The following services are not in alphabetical order:');
         foreach ($outOfOrder as $entry) {
-            $errorOutput->writeln(sprintf('  - %s should come after %s', $entry->key, $entry->predecessor));
+            $errorOutput->writeln(sprintf(
+                '  - %s%s should come after %s',
+                $entry->key,
+                $entry->subsequentCount > 0
+                    ? sprintf(
+                        ' (and %d subsequent service%s)',
+                        $entry->subsequentCount,
+                        $entry->subsequentCount === 1 ? '' : 's',
+                    )
+                    : '',
+                $entry->predecessor,
+            ));
         }
 
         return Command::FAILURE;
