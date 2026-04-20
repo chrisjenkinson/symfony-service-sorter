@@ -98,8 +98,8 @@ final class ServicesSorter
             $aNormalized = $this->normalizer->normalize($aFirstKey);
             $bNormalized = $this->normalizer->normalize($bFirstKey);
 
-            $aUnderscore = str_starts_with($aFirstKey, '_');
-            $bUnderscore = str_starts_with($bFirstKey, '_');
+            $aUnderscore = str_starts_with($aNormalized, '_');
+            $bUnderscore = str_starts_with($bNormalized, '_');
 
             if ($aUnderscore !== $bUnderscore) {
                 return $aUnderscore ? -1 : 1;

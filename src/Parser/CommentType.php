@@ -7,7 +7,6 @@ namespace App\Parser;
 enum CommentType
 {
     case Boundary;
-    case Standard;
     case ImmediatelyBefore;
     case ImmediatelyAfter;
     case Ambiguous;

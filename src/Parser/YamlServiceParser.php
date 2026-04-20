@@ -133,9 +133,6 @@ final class YamlServiceParser
         $currentLines = [];
         $inRemainder = false;
 
-        $blankLinesBeforeComment = 0;
-        $blankLinesAfterComment = 0;
-
         foreach ($lines as $line) {
             if ($inRemainder) {
                 $remainder[] = $line;
@@ -152,13 +149,6 @@ final class YamlServiceParser
             }
 
             if (str_starts_with($trimmed, '#')) {
-                $blankLinesBeforeComment = 0;
-                foreach ($pendingLines as $pl) {
-                    if (rtrim($pl) === '') {
-                        $blankLinesBeforeComment++;
-                    }
-                }
-
                 if ($lineIndent === $blockIndent || $lineIndent === '') {
                     if ($currentKey !== null) {
                         $currentLines = array_merge($currentLines, $pendingLines);
@@ -189,13 +179,6 @@ final class YamlServiceParser
             }
 
             if ($lineIndent === $blockIndent) {
-                $blankLinesAfterComment = 0;
-                foreach ($pendingLines as $pl) {
-                    if (rtrim($pl) === '') {
-                        $blankLinesAfterComment++;
-                    }
-                }
-
                 if ($currentKey !== null) {
                     $currentLines = array_merge($currentLines, $pendingLines);
                     $pendingLines = [];
@@ -264,7 +247,11 @@ final class YamlServiceParser
                 blankLinesAfter: $blankAfter,
             );
 
-            if ($this->classifyByBlankCounts($blankBefore, $blankAfter) === CommentType::Ambiguous) {
+            $exceptionBlankBefore = $blankBefore;
+            if ($exceptionBlankBefore === 0 && $prevKey === null) {
+                $exceptionBlankBefore = 1;
+            }
+            if ($this->classifyByBlankCounts($exceptionBlankBefore, $blankAfter) === CommentType::Ambiguous) {
                 throw new AmbiguousCommentException($prevKey ?? '', $chunk->key);
             }
 
