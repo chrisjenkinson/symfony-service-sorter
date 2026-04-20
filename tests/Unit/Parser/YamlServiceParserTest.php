@@ -436,5 +436,4 @@ YAML;
         self::assertCount(1, $result->classifiedComments);
         self::assertSame(CommentType::Boundary, $result->classifiedComments[0]->type);
     }
-
 }
