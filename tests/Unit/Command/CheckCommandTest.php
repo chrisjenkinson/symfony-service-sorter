@@ -7,6 +7,11 @@ namespace App\Tests\Unit\Command;
 use App\Command\CheckCommand;
 use App\IO\FileIO;
 use App\IO\FileIOException;
+use App\Parser\Extraction\ServiceChunkExtractor;
+use App\Parser\Extraction\ServicesBlockExtractor;
+use App\Parser\Region\ServiceBlockLineClassifier;
+use App\Parser\Region\ServiceRegionAnalyzer;
+use App\Parser\Region\ServiceRegionDetector;
 use App\Parser\YamlServiceParser;
 use App\Sorter\DuplicateServiceKeyException;
 use App\Sorter\ServiceKeyNormalizer;
@@ -24,7 +29,14 @@ final class CheckCommandTest extends TestCase
 
     protected function setUp(): void
     {
-        $this->parser = new YamlServiceParser();
+        $this->parser = new YamlServiceParser(
+            new ServicesBlockExtractor(),
+            new ServiceChunkExtractor(),
+            new ServiceRegionAnalyzer(
+                new ServiceBlockLineClassifier(),
+                new ServiceRegionDetector(),
+            ),
+        );
         $this->checker = new ServiceOrderChecker(new ServiceKeySorter(new ServiceKeyNormalizer()));
         $this->fileIO = $this->createMock(FileIO::class);
     }

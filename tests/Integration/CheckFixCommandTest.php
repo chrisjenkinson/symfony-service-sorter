@@ -6,14 +6,18 @@ namespace App\Tests\Integration;
 
 use App\Command\CheckCommand;
 use App\Command\FixCommand;
-use App\IO\FileIO;
+use App\IO\NativeFileIO;
+use App\Parser\Extraction\ServiceChunkExtractor;
+use App\Parser\Extraction\ServicesBlockExtractor;
+use App\Parser\Region\ServiceBlockLineClassifier;
+use App\Parser\Region\ServiceRegionAnalyzer;
+use App\Parser\Region\ServiceRegionDetector;
 use App\Parser\YamlServiceParser;
 use App\Sorter\ServiceKeyNormalizer;
 use App\Sorter\ServiceKeySorter;
 use App\Sorter\ServiceOrderChecker;
 use App\Sorter\ServicesSorter;
 use PHPUnit\Framework\Attributes\DataProvider;
-use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
 use Symfony\Component\Console\Tester\CommandTester;
 
@@ -22,23 +26,55 @@ final class CheckFixCommandTest extends TestCase
     private YamlServiceParser $parser;
     private ServicesSorter $sorter;
     private ServiceOrderChecker $checker;
-    private FileIO&MockObject $fileIO;
+    private NativeFileIO $fileIO;
+    /** @var list<string> */
+    private array $tempFiles = [];
 
     protected function setUp(): void
     {
-        $this->parser = new YamlServiceParser();
+        $this->parser = new YamlServiceParser(
+            new ServicesBlockExtractor(),
+            new ServiceChunkExtractor(),
+            new ServiceRegionAnalyzer(
+                new ServiceBlockLineClassifier(),
+                new ServiceRegionDetector(),
+            ),
+        );
         $keySorter = new ServiceKeySorter(new ServiceKeyNormalizer());
         $normalizer = new ServiceKeyNormalizer();
         $this->sorter = new ServicesSorter($keySorter, $normalizer);
         $this->checker = new ServiceOrderChecker($keySorter);
-        $this->fileIO = $this->createMock(FileIO::class);
+        $this->fileIO = new NativeFileIO();
     }
 
     private function readFixture(string $path): string
     {
-        $content = file_get_contents(__DIR__ . '/../fixtures/' . $path);
-        self::assertNotFalse($content, "Could not read fixture: $path");
-        return $content;
+        return $this->fileIO->read(__DIR__ . '/../fixtures/' . $path);
+    }
+
+    protected function tearDown(): void
+    {
+        foreach ($this->tempFiles as $path) {
+            if (file_exists($path)) {
+                unlink($path);
+            }
+        }
+        $this->tempFiles = [];
+    }
+
+    private function createTempFixtureFile(string $fixturePath): string
+    {
+        return $this->createTempFileWithContent($this->readFixture($fixturePath));
+    }
+
+    private function createTempFileWithContent(string $content): string
+    {
+        $path = tempnam(sys_get_temp_dir(), 'svc-sorter-');
+        self::assertNotFalse($path, 'Could not create temp file');
+        $this->tempFiles[] = $path;
+        $this->fileIO->write($path, $content);
+
+        return $path;
     }
 
     private function createCheckCommandTester(): CommandTester
@@ -51,91 +87,39 @@ final class CheckFixCommandTest extends TestCase
         return new CommandTester(new FixCommand($this->parser, $this->sorter, $this->fileIO));
     }
 
-    public function testCheckBasicSortedPasses(): void
+    #[DataProvider('sortedFixtureProvider')]
+    public function testCheckSortedFixturesPass(string $fixtureName): void
     {
-        $this->fileIO->method('read')->willReturn($this->readFixture('basic/expected.yaml'));
+        $path = $this->createTempFixtureFile($fixtureName . '/expected.yaml');
 
         $tester = $this->createCheckCommandTester();
-        $tester->execute(['file' => 'basic/expected.yaml'], ['capture_stderr_separately' => true]);
+        $tester->execute(['file' => $path], ['capture_stderr_separately' => true]);
 
         self::assertSame(0, $tester->getStatusCode());
         self::assertStringContainsString('All services are in order', $tester->getDisplay());
     }
 
-    public function testCheckUnderscorePinnedSortedPasses(): void
+    #[DataProvider('unsortedFixtureProvider')]
+    public function testCheckUnsortedFixturesReportOutOfOrder(string $fixtureName): void
     {
-        $this->fileIO->method('read')->willReturn($this->readFixture('underscore-pinned/expected.yaml'));
+        $path = $this->createTempFixtureFile($fixtureName . '/input.yaml');
 
         $tester = $this->createCheckCommandTester();
-        $tester->execute(['file' => 'underscore-pinned/expected.yaml'], ['capture_stderr_separately' => true]);
-
-        self::assertSame(0, $tester->getStatusCode());
-        self::assertStringContainsString('All services are in order', $tester->getDisplay());
-    }
-
-    public function testCheckCaseInsensitiveSortedPasses(): void
-    {
-        $this->fileIO->method('read')->willReturn($this->readFixture('case-insensitive/expected.yaml'));
-
-        $tester = $this->createCheckCommandTester();
-        $tester->execute(['file' => 'case-insensitive/expected.yaml'], ['capture_stderr_separately' => true]);
-
-        self::assertSame(0, $tester->getStatusCode());
-        self::assertStringContainsString('All services are in order', $tester->getDisplay());
-    }
-
-    public function testCheckBasicUnsortedReportsOutOfOrder(): void
-    {
-        $this->fileIO->method('read')->willReturn($this->readFixture('basic/input.yaml'));
-
-        $tester = $this->createCheckCommandTester();
-        $tester->execute(['file' => 'basic/input.yaml'], ['capture_stderr_separately' => true]);
+        $tester->execute(['file' => $path], ['capture_stderr_separately' => true]);
 
         self::assertSame(1, $tester->getStatusCode());
         self::assertStringContainsString('should come after', $tester->getErrorOutput());
-    }
-
-    public function testCheckUnsortedFixtureReportsOutOfOrder(): void
-    {
-        $this->fileIO->method('read')->willReturn($this->readFixture('unsorted/input.yaml'));
-
-        $tester = $this->createCheckCommandTester();
-        $tester->execute(['file' => 'unsorted/input.yaml'], ['capture_stderr_separately' => true]);
-
-        self::assertSame(1, $tester->getStatusCode());
-        self::assertStringContainsString('App\\Zebra', $tester->getErrorOutput());
-        self::assertStringContainsString('should come after', $tester->getErrorOutput());
-    }
-
-    public function testCheckUnderscorePinnedUnsortedReportsOutOfOrder(): void
-    {
-        $this->fileIO->method('read')->willReturn($this->readFixture('underscore-pinned/input.yaml'));
-
-        $tester = $this->createCheckCommandTester();
-        $tester->execute(['file' => 'underscore-pinned/input.yaml'], ['capture_stderr_separately' => true]);
-
-        self::assertSame(1, $tester->getStatusCode());
-        $error = $tester->getErrorOutput();
-        self::assertStringContainsString('should come after', $error);
-    }
-
-    public function testCheckCaseInsensitiveUnsortedReportsOutOfOrder(): void
-    {
-        $this->fileIO->method('read')->willReturn($this->readFixture('case-insensitive/input.yaml'));
-
-        $tester = $this->createCheckCommandTester();
-        $tester->execute(['file' => 'case-insensitive/input.yaml'], ['capture_stderr_separately' => true]);
-
-        self::assertSame(1, $tester->getStatusCode());
-        self::assertStringContainsString('should come after', $tester->getErrorOutput());
+        if ($fixtureName === 'unsorted') {
+            self::assertStringContainsString('App\\Zebra', $tester->getErrorOutput());
+        }
     }
 
     public function testCheckNoServicesKeyPassesWithWarning(): void
     {
-        $this->fileIO->method('read')->willReturn($this->readFixture('no-services-key/input.yaml'));
+        $path = $this->createTempFixtureFile('no-services-key/input.yaml');
 
         $tester = $this->createCheckCommandTester();
-        $tester->execute(['file' => 'no-services-key/input.yaml'], ['capture_stderr_separately' => true]);
+        $tester->execute(['file' => $path], ['capture_stderr_separately' => true]);
 
         self::assertSame(0, $tester->getStatusCode());
         self::assertStringContainsString('no services: key found', $tester->getErrorOutput());
@@ -143,10 +127,10 @@ final class CheckFixCommandTest extends TestCase
 
     public function testCheckEmptyServicesPasses(): void
     {
-        $this->fileIO->method('read')->willReturn($this->readFixture('empty-services/input.yaml'));
+        $path = $this->createTempFixtureFile('empty-services/input.yaml');
 
         $tester = $this->createCheckCommandTester();
-        $tester->execute(['file' => 'empty-services/input.yaml'], ['capture_stderr_separately' => true]);
+        $tester->execute(['file' => $path], ['capture_stderr_separately' => true]);
 
         self::assertSame(0, $tester->getStatusCode());
         self::assertStringContainsString('All services are in order', $tester->getDisplay());
@@ -155,36 +139,33 @@ final class CheckFixCommandTest extends TestCase
     #[DataProvider('fixtureProvider')]
     public function testFixStdoutMatchesExpected(string $fixtureName): void
     {
-        $input = $this->readFixture($fixtureName . '/input.yaml');
+        $path = $this->createTempFixtureFile($fixtureName . '/input.yaml');
         $expected = $this->readFixture($fixtureName . '/expected.yaml');
-        $this->fileIO->method('read')->willReturn($input);
 
         $tester = $this->createFixCommandTester();
-        $tester->execute(['file' => $fixtureName . '/input.yaml', '--stdout' => true], ['capture_stderr_separately' => true]);
+        $tester->execute(['file' => $path, '--stdout' => true], ['capture_stderr_separately' => true]);
 
         self::assertSame($expected, $tester->getDisplay());
     }
 
     public function testFixInPlaceWritesSortedContent(): void
     {
-        $input = $this->readFixture('basic/input.yaml');
+        $path = $this->createTempFixtureFile('basic/input.yaml');
         $expected = $this->readFixture('basic/expected.yaml');
-        $this->fileIO->method('read')->willReturn($input);
-        $this->fileIO->expects(self::once())->method('write')->with('/path/to/services.yaml', $expected);
 
         $tester = $this->createFixCommandTester();
-        $tester->execute(['file' => '/path/to/services.yaml']);
+        $tester->execute(['file' => $path]);
 
         self::assertSame(0, $tester->getStatusCode());
+        self::assertSame($expected, $this->fileIO->read($path));
     }
 
     public function testFixNoServicesKeyWithStdout(): void
     {
-        $input = $this->readFixture('no-services-key/input.yaml');
-        $this->fileIO->method('read')->willReturn($input);
+        $path = $this->createTempFixtureFile('no-services-key/input.yaml');
 
         $tester = $this->createFixCommandTester();
-        $tester->execute(['file' => 'no-services-key/input.yaml', '--stdout' => true], ['capture_stderr_separately' => true]);
+        $tester->execute(['file' => $path, '--stdout' => true], ['capture_stderr_separately' => true]);
 
         self::assertSame(0, $tester->getStatusCode());
         self::assertStringContainsString('no services: key found', $tester->getErrorOutput());
@@ -203,6 +184,32 @@ final class CheckFixCommandTest extends TestCase
             'empty-services' => ['empty-services'],
             'no-services-key' => ['no-services-key'],
             'multiline-values' => ['multiline-values'],
+            'case-insensitive' => ['case-insensitive'],
+        ];
+    }
+
+    /**
+     * @return array<string, array{string}>
+     */
+    public static function sortedFixtureProvider(): array
+    {
+        return [
+            'basic' => ['basic'],
+            'underscore-pinned' => ['underscore-pinned'],
+            'case-insensitive' => ['case-insensitive'],
+            'empty-services' => ['empty-services'],
+        ];
+    }
+
+    /**
+     * @return array<string, array{string}>
+     */
+    public static function unsortedFixtureProvider(): array
+    {
+        return [
+            'basic' => ['basic'],
+            'unsorted' => ['unsorted'],
+            'underscore-pinned' => ['underscore-pinned'],
             'case-insensitive' => ['case-insensitive'],
         ];
     }
