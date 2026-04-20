@@ -8,6 +8,11 @@ require __DIR__ . '/../vendor/autoload.php';
 use App\Command\CheckCommand;
 use App\Command\FixCommand;
 use App\IO\NativeFileIO;
+use App\Parser\Extraction\ServiceChunkExtractor;
+use App\Parser\Extraction\ServicesBlockExtractor;
+use App\Parser\Region\ServiceBlockLineClassifier;
+use App\Parser\Region\ServiceRegionAnalyzer;
+use App\Parser\Region\ServiceRegionDetector;
 use App\Parser\YamlServiceParser;
 use App\Sorter\ServiceKeyNormalizer;
 use App\Sorter\ServiceKeySorter;
@@ -15,10 +20,18 @@ use App\Sorter\ServiceOrderChecker;
 use App\Sorter\ServicesSorter;
 use Symfony\Component\Console\Application;
 
-$parser = new YamlServiceParser();
-$keySorter = new ServiceKeySorter(new ServiceKeyNormalizer());
+$normalizer = new ServiceKeyNormalizer();
+$parser = new YamlServiceParser(
+    new ServicesBlockExtractor(),
+    new ServiceChunkExtractor(),
+    new ServiceRegionAnalyzer(
+        new ServiceBlockLineClassifier(),
+        new ServiceRegionDetector(),
+    ),
+);
+$keySorter = new ServiceKeySorter($normalizer);
 
 $application = new Application('sort-services', '1.0.0');
 $application->addCommand(new CheckCommand($parser, new ServiceOrderChecker($keySorter), new NativeFileIO()));
-$application->addCommand(new FixCommand($parser, new ServicesSorter($keySorter, new ServiceKeyNormalizer()), new NativeFileIO()));
+$application->addCommand(new FixCommand($parser, new ServicesSorter($keySorter, $normalizer), new NativeFileIO()));
 $application->run();
