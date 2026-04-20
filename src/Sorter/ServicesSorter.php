@@ -13,7 +13,7 @@ final class ServicesSorter
 {
     public function __construct(
         private readonly ServiceKeySorter $keySorter,
-        private readonly ServiceKeyNormalizer $normalizer = new ServiceKeyNormalizer(),
+        private readonly ServiceKeyNormalizer $normalizer,
     ) {
     }
 

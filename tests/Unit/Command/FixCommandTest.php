@@ -25,7 +25,7 @@ final class FixCommandTest extends TestCase
     protected function setUp(): void
     {
         $this->parser = new YamlServiceParser();
-        $this->sorter = new ServicesSorter(new ServiceKeySorter(new ServiceKeyNormalizer()));
+        $this->sorter = new ServicesSorter(new ServiceKeySorter(new ServiceKeyNormalizer()), new ServiceKeyNormalizer());
         $this->fileIO = $this->createMock(FileIO::class);
     }
 

@@ -20,5 +20,5 @@ $keySorter = new ServiceKeySorter(new ServiceKeyNormalizer());
 
 $application = new Application('sort-services', '1.0.0');
 $application->addCommand(new CheckCommand($parser, new ServiceOrderChecker($keySorter), new NativeFileIO()));
-$application->addCommand(new FixCommand($parser, new ServicesSorter($keySorter), new NativeFileIO()));
+$application->addCommand(new FixCommand($parser, new ServicesSorter($keySorter, new ServiceKeyNormalizer()), new NativeFileIO()));
 $application->run();

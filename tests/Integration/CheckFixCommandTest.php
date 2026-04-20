@@ -28,7 +28,8 @@ final class CheckFixCommandTest extends TestCase
     {
         $this->parser = new YamlServiceParser();
         $keySorter = new ServiceKeySorter(new ServiceKeyNormalizer());
-        $this->sorter = new ServicesSorter($keySorter);
+        $normalizer = new ServiceKeyNormalizer();
+        $this->sorter = new ServicesSorter($keySorter, $normalizer);
         $this->checker = new ServiceOrderChecker($keySorter);
         $this->fileIO = $this->createMock(FileIO::class);
     }

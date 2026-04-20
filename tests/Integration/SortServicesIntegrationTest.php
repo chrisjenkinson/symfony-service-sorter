@@ -19,7 +19,7 @@ final class SortServicesIntegrationTest extends TestCase
     protected function setUp(): void
     {
         $this->parser = new YamlServiceParser();
-        $this->sorter = new ServicesSorter(new ServiceKeySorter(new ServiceKeyNormalizer()));
+        $this->sorter = new ServicesSorter(new ServiceKeySorter(new ServiceKeyNormalizer()), new ServiceKeyNormalizer());
     }
 
     #[DataProvider('fixtureProvider')]
