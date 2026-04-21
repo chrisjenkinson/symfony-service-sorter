@@ -6,7 +6,6 @@ namespace App\Tests\Unit\Sorter;
 
 use App\Parser\ParsedFile;
 use App\Parser\ServiceChunk;
-use App\Sorter\OutOfOrderEntry;
 use App\Sorter\ServiceKeyNormalizer;
 use App\Sorter\ServiceKeySorter;
 use App\Sorter\ServiceOrderChecker;

@@ -13,7 +13,6 @@ use App\Parser\Region\ServiceBlockLineClassifier;
 use App\Parser\Region\ServiceRegionAnalyzer;
 use App\Parser\Region\ServiceRegionDetector;
 use App\Parser\YamlServiceParser;
-use App\Sorter\DuplicateServiceKeyException;
 use App\Sorter\ServiceKeyNormalizer;
 use App\Sorter\ServiceKeySorter;
 use App\Sorter\ServicesSorter;

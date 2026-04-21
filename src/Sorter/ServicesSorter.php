@@ -7,7 +7,6 @@ namespace App\Sorter;
 use App\Parser\ParsedFile;
 use App\Parser\ServiceChunk;
 use App\Parser\ServiceGroup;
-use App\Sorter\ServiceKeyNormalizer;
 
 final class ServicesSorter
 {
