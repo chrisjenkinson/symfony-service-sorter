@@ -4,199 +4,61 @@ declare(strict_types=1);
 
 namespace App\Parser;
 
+use App\Parser\Extraction\ServiceChunkExtractor;
+use App\Parser\Extraction\ServicesBlockExtractor;
+use App\Parser\Region\ServiceRegionAnalyzer;
+
 final class YamlServiceParser
 {
+    public function __construct(
+        private readonly ServicesBlockExtractor $servicesBlockExtractor,
+        private readonly ServiceChunkExtractor $serviceChunkExtractor,
+        private readonly ServiceRegionAnalyzer $serviceRegionAnalyzer,
+    ) {
+    }
+
     public function parse(string $content): ParsedFile
     {
-        $lines = $this->splitLines($content);
+        $servicesBlock = $this->servicesBlockExtractor->extract($content);
 
-        $servicesLineIndex = $this->findServicesLine($lines);
-
-        if ($servicesLineIndex === null) {
+        if ($servicesBlock['servicesHeader'] === '') {
             return new ParsedFile(
-                preamble: $lines,
+                preamble: $servicesBlock['preamble'],
                 servicesHeader: '',
                 chunks: [],
                 remainder: [],
             );
         }
 
-        $preamble = array_slice($lines, 0, $servicesLineIndex);
-        $servicesHeader = $lines[$servicesLineIndex];
-
-        $blockLines = array_slice($lines, $servicesLineIndex + 1);
-        $blockIndent = $this->detectBlockIndent($blockLines);
-
-        if ($blockIndent === null) {
-            [, $remainder] = $this->splitEmptyBlock($blockLines);
+        if ($servicesBlock['blockIndent'] === null) {
             return new ParsedFile(
-                preamble: $preamble,
-                servicesHeader: $servicesHeader,
+                preamble: $servicesBlock['preamble'],
+                servicesHeader: $servicesBlock['servicesHeader'],
                 chunks: [],
-                remainder: $remainder,
+                remainder: $servicesBlock['emptyBlockRemainder'],
             );
         }
 
-        [$chunks, $remainder] = $this->extractChunks($blockLines, $blockIndent);
+        $chunkExtraction = $this->serviceChunkExtractor->extract(
+            $servicesBlock['blockLines'],
+            $servicesBlock['blockIndent'],
+        );
+
+        $analysis = $this->serviceRegionAnalyzer->analyze(
+            $servicesBlock['servicesHeader'],
+            $servicesBlock['blockLines'],
+            $servicesBlock['blockIndent'],
+            $chunkExtraction['chunks'],
+            $chunkExtraction['descriptions'],
+        );
 
         return new ParsedFile(
-            preamble: $preamble,
-            servicesHeader: $servicesHeader,
-            chunks: $chunks,
-            remainder: $remainder,
+            preamble: $servicesBlock['preamble'],
+            servicesHeader: $servicesBlock['servicesHeader'],
+            chunks: $chunkExtraction['chunks'],
+            remainder: $chunkExtraction['remainder'],
+            classifiedComments: $analysis['classifiedComments'],
+            groups: $analysis['groups'],
         );
-    }
-
-    /**
-     * @return list<string>
-     */
-    private function splitLines(string $content): array
-    {
-        if ($content === '') {
-            return [];
-        }
-        $lines = [];
-        $remaining = $content;
-        while ($remaining !== '') {
-            $pos = strpos($remaining, "\n");
-            if ($pos === false) {
-                $lines[] = $remaining . "\n";
-                break;
-            }
-            $lines[] = substr($remaining, 0, $pos + 1);
-            $remaining = substr($remaining, $pos + 1);
-        }
-        return $lines;
-    }
-
-    /**
-     * @param list<string> $lines
-     */
-    private function findServicesLine(array $lines): ?int
-    {
-        foreach ($lines as $i => $line) {
-            if (preg_match('/^services:\s*$/', rtrim($line))) {
-                return $i;
-            }
-        }
-        return null;
-    }
-
-    /**
-     * @param list<string> $lines
-     */
-    private function detectBlockIndent(array $lines): ?string
-    {
-        foreach ($lines as $line) {
-            $trimmed = ltrim($line, " \t");
-            if ($trimmed === '' || $trimmed === "\n" || str_starts_with($trimmed, '#')) {
-                continue;
-            }
-            return substr($line, 0, strlen($line) - strlen($trimmed));
-        }
-        return null;
-    }
-
-    /**
-     * @param list<string> $lines
-     * @return array{list<string>, list<string>}
-     */
-    private function splitEmptyBlock(array $lines): array
-    {
-        foreach ($lines as $i => $line) {
-            $trimmed = ltrim($line, " \t");
-            if ($trimmed !== '' && $trimmed !== "\n" && !str_starts_with($trimmed, '#')) {
-                $indent = substr($line, 0, strlen($line) - strlen($trimmed));
-                if ($indent === '') {
-                    return [array_slice($lines, 0, $i), array_slice($lines, $i)];
-                }
-            }
-        }
-        return [$lines, []];
-    }
-
-    /**
-     * @param list<string> $lines
-     * @return array{list<ServiceChunk>, list<string>}
-     */
-    private function extractChunks(array $lines, string $blockIndent): array
-    {
-        $chunks = [];
-        $remainder = [];
-        $pendingLines = [];
-        $currentKey = null;
-        $currentLines = [];
-        $inRemainder = false;
-
-        foreach ($lines as $line) {
-            if ($inRemainder) {
-                $remainder[] = $line;
-                continue;
-            }
-
-            $trimmed = ltrim($line, " \t");
-            $lineIndent = substr($line, 0, strlen($line) - strlen($trimmed));
-            $rtrimmedLine = rtrim($line);
-
-            if ($rtrimmedLine === '') {
-                $pendingLines[] = $line;
-                continue;
-            }
-
-            if (str_starts_with($trimmed, '#')) {
-                if ($lineIndent === $blockIndent || $lineIndent === '') {
-                    if ($currentKey !== null) {
-                        $currentLines = array_merge($currentLines, $pendingLines);
-                        $pendingLines = [];
-                        $chunks[] = new ServiceChunk($currentKey, $currentLines);
-                        $currentKey = null;
-                        $currentLines = [];
-                    }
-                    $pendingLines[] = $line;
-                } else {
-                    $currentLines = array_merge($currentLines, $pendingLines);
-                    $pendingLines = [];
-                    $currentLines[] = $line;
-                }
-                continue;
-            }
-
-            if ($lineIndent === '') {
-                if ($currentKey !== null) {
-                    $chunks[] = new ServiceChunk($currentKey, $currentLines);
-                    $currentKey = null;
-                    $currentLines = [];
-                }
-                $inRemainder = true;
-                $remainder = array_merge($pendingLines, [$line]);
-                $pendingLines = [];
-                continue;
-            }
-
-            if ($lineIndent === $blockIndent) {
-                if ($currentKey !== null) {
-                    $chunks[] = new ServiceChunk($currentKey, $currentLines);
-                    $currentKey = null;
-                    $currentLines = [];
-                }
-                $currentKey = rtrim(rtrim($trimmed), ':');
-                $currentLines = array_merge($pendingLines, [$line]);
-                $pendingLines = [];
-                continue;
-            }
-
-            $currentLines = array_merge($currentLines, $pendingLines);
-            $pendingLines = [];
-            $currentLines[] = $line;
-        }
-
-        if ($currentKey !== null) {
-            $currentLines = array_merge($currentLines, $pendingLines);
-            $chunks[] = new ServiceChunk($currentKey, $currentLines);
-        } else {
-            $remainder = array_merge($pendingLines, $remainder);
-        }
-
-        return [$chunks, $remainder];
     }
 }

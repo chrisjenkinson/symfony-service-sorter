@@ -6,6 +6,7 @@ namespace App\Command;
 
 use App\IO\FileIO;
 use App\IO\FileIOException;
+use App\Parser\AmbiguousCommentException;
 use App\Parser\YamlServiceParser;
 use App\Sorter\DuplicateServiceKeyException;
 use App\Sorter\ServiceOrderChecker;
@@ -51,7 +52,12 @@ final class CheckCommand extends Command
             return Command::FAILURE;
         }
 
-        $parsedFile = $this->parser->parse($content);
+        try {
+            $parsedFile = $this->parser->parse($content);
+        } catch (AmbiguousCommentException $e) {
+            $errorOutput->writeln(sprintf('<error>%s</error>', $e->getMessage()));
+            return Command::FAILURE;
+        }
 
         if ($parsedFile->servicesHeader === '') {
             $errorOutput->writeln(sprintf(
@@ -75,7 +81,18 @@ final class CheckCommand extends Command
 
         $errorOutput->writeln('The following services are not in alphabetical order:');
         foreach ($outOfOrder as $entry) {
-            $errorOutput->writeln(sprintf('  - %s should come after %s', $entry->key, $entry->predecessor));
+            $errorOutput->writeln(sprintf(
+                '  - %s%s should come after %s',
+                $entry->key,
+                $entry->subsequentCount > 0
+                    ? sprintf(
+                        ' (and %d subsequent service%s)',
+                        $entry->subsequentCount,
+                        $entry->subsequentCount === 1 ? '' : 's',
+                    )
+                    : '',
+                $entry->predecessor,
+            ));
         }
 
         return Command::FAILURE;

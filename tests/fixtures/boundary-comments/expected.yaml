@@ -1,0 +1,24 @@
+services:
+    _defaults:
+        autowire: true
+
+    App\:
+        resource: '../src/'
+
+    # add more service definitions when explicit configuration is needed
+    # please note that last definitions always *replace* previous ones
+
+    # this is a standard comment
+    App\AlphaService:
+        autowire: true
+
+    App\ZebraService:
+        autowire: true
+
+    # another boundary comment
+
+    App\BravoService:
+        autowire: true
+
+    App\CharlieService:
+        autowire: true

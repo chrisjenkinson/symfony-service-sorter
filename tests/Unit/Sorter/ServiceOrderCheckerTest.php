@@ -6,7 +6,6 @@ namespace App\Tests\Unit\Sorter;
 
 use App\Parser\ParsedFile;
 use App\Parser\ServiceChunk;
-use App\Sorter\OutOfOrderEntry;
 use App\Sorter\ServiceKeyNormalizer;
 use App\Sorter\ServiceKeySorter;
 use App\Sorter\ServiceOrderChecker;
@@ -121,6 +120,34 @@ final class ServiceOrderCheckerTest extends TestCase
         self::assertCount(1, $result);
         self::assertSame('C', $result[0]->key);
         self::assertSame('B', $result[0]->predecessor);
+    }
+
+    public function testCountsSubsequentServicesInContiguousDisplacedRun(): void
+    {
+        $parsedFile = new ParsedFile(
+            preamble: [],
+            servicesHeader: "services:\n",
+            chunks: [
+                new ServiceChunk('App\\Example\\Echo', ["    App\\Example\\Echo:\n"]),
+                new ServiceChunk('App\\Example\\Foxtrot', ["    App\\Example\\Foxtrot:\n"]),
+                new ServiceChunk('App\\Example\\Golf', ["    App\\Example\\Golf:\n"]),
+                new ServiceChunk('App\\Example\\Delta', ["    App\\Example\\Delta:\n"]),
+                new ServiceChunk('App\\Example\\Alpha', ["    App\\Example\\Alpha:\n"]),
+                new ServiceChunk('App\\Example\\Bravo', ["    App\\Example\\Bravo:\n"]),
+                new ServiceChunk('App\\Example\\Charlie', ["    App\\Example\\Charlie:\n"]),
+            ],
+            remainder: [],
+        );
+
+        $result = $this->checker->check($parsedFile);
+
+        self::assertCount(2, $result);
+        self::assertSame('App\\Example\\Echo', $result[0]->key);
+        self::assertSame('App\\Example\\Delta', $result[0]->predecessor);
+        self::assertSame(2, $result[0]->subsequentCount);
+        self::assertSame('App\\Example\\Delta', $result[1]->key);
+        self::assertSame('App\\Example\\Charlie', $result[1]->predecessor);
+        self::assertSame(0, $result[1]->subsequentCount);
     }
 
     public function testTwoSeparateSwapsBadc(): void

@@ -7,8 +7,12 @@ namespace App\Tests\Unit\Command;
 use App\Command\FixCommand;
 use App\IO\FileIO;
 use App\IO\FileIOException;
+use App\Parser\Extraction\ServiceChunkExtractor;
+use App\Parser\Extraction\ServicesBlockExtractor;
+use App\Parser\Region\ServiceBlockLineClassifier;
+use App\Parser\Region\ServiceRegionAnalyzer;
+use App\Parser\Region\ServiceRegionDetector;
 use App\Parser\YamlServiceParser;
-use App\Sorter\DuplicateServiceKeyException;
 use App\Sorter\ServiceKeyNormalizer;
 use App\Sorter\ServiceKeySorter;
 use App\Sorter\ServicesSorter;
@@ -24,8 +28,15 @@ final class FixCommandTest extends TestCase
 
     protected function setUp(): void
     {
-        $this->parser = new YamlServiceParser();
-        $this->sorter = new ServicesSorter(new ServiceKeySorter(new ServiceKeyNormalizer()));
+        $this->parser = new YamlServiceParser(
+            new ServicesBlockExtractor(),
+            new ServiceChunkExtractor(),
+            new ServiceRegionAnalyzer(
+                new ServiceBlockLineClassifier(),
+                new ServiceRegionDetector(),
+            ),
+        );
+        $this->sorter = new ServicesSorter(new ServiceKeySorter(new ServiceKeyNormalizer()), new ServiceKeyNormalizer());
         $this->fileIO = $this->createMock(FileIO::class);
     }
 
