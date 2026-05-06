@@ -35,7 +35,7 @@ final class FixCommand extends Command
     protected function configure(): void
     {
         $this
-            ->addArgument('file', InputArgument::REQUIRED, 'Path to the YAML file')
+            ->addArgument('file', InputArgument::IS_ARRAY | InputArgument::REQUIRED, 'Path to one or more YAML files')
             ->addOption('stdout', null, InputOption::VALUE_NONE, 'Write sorted YAML to stdout instead of modifying the file');
     }
 
@@ -45,9 +45,72 @@ final class FixCommand extends Command
             ? $output->getErrorOutput()
             : $output;
 
-        /** @var string $filePath */
-        $filePath = $input->getArgument('file');
+        $fileArgument = $input->getArgument('file');
+        /** @var list<string> $filePaths */
+        $filePaths = is_array($fileArgument) ? $fileArgument : [$fileArgument];
 
+        if ($input->getOption('stdout')) {
+            if (count($filePaths) !== 1) {
+                $errorOutput->writeln('<error>The --stdout option can only be used with a single file.</error>');
+                return Command::FAILURE;
+            }
+
+            return $this->writeSortedOutputToStdout($filePaths[0], $output, $errorOutput);
+        }
+
+        $hadFailure = false;
+
+        foreach ($filePaths as $filePath) {
+            try {
+                $content = $this->fileIO->read($filePath);
+            } catch (FileIOException $e) {
+                $errorOutput->writeln(sprintf('<error>%s (%s)</error>', $e->getMessage(), $filePath));
+                $hadFailure = true;
+                continue;
+            }
+
+            try {
+                $parsedFile = $this->parser->parse($content);
+            } catch (AmbiguousCommentException $e) {
+                $errorOutput->writeln(sprintf('<error>%s (%s)</error>', $e->getMessage(), $filePath));
+                $hadFailure = true;
+                continue;
+            }
+
+            if ($parsedFile->servicesHeader === '') {
+                $errorOutput->writeln(sprintf(
+                    '<comment>Warning: no services: key found in %s</comment>',
+                    $filePath,
+                ));
+            }
+
+            try {
+                $sorted = $this->sorter->sort($parsedFile);
+            } catch (DuplicateServiceKeyException $e) {
+                $errorOutput->writeln(sprintf('<error>%s (%s)</error>', $e->getMessage(), $filePath));
+                $hadFailure = true;
+                continue;
+            }
+
+            try {
+                $this->fileIO->write($filePath, $sorted);
+            } catch (FileIOException $e) {
+                $errorOutput->writeln(sprintf('<error>%s (%s)</error>', $e->getMessage(), $filePath));
+                $hadFailure = true;
+                continue;
+            }
+
+            $output->writeln(sprintf('Fixed: %s', $filePath));
+        }
+
+        return $hadFailure ? Command::FAILURE : Command::SUCCESS;
+    }
+
+    private function writeSortedOutputToStdout(
+        string $filePath,
+        OutputInterface $output,
+        OutputInterface $errorOutput,
+    ): int {
         try {
             $content = $this->fileIO->read($filePath);
         } catch (FileIOException $e) {
@@ -76,18 +139,7 @@ final class FixCommand extends Command
             return Command::FAILURE;
         }
 
-        if ($input->getOption('stdout')) {
-            $output->write($sorted, false, OutputInterface::OUTPUT_RAW);
-            return Command::SUCCESS;
-        }
-
-        try {
-            $this->fileIO->write($filePath, $sorted);
-        } catch (FileIOException $e) {
-            $errorOutput->writeln(sprintf('<error>%s</error>', $e->getMessage()));
-            return Command::FAILURE;
-        }
-
+        $output->write($sorted, false, OutputInterface::OUTPUT_RAW);
         return Command::SUCCESS;
     }
 }

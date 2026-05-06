@@ -33,7 +33,7 @@ final class CheckCommand extends Command
 
     protected function configure(): void
     {
-        $this->addArgument('file', InputArgument::REQUIRED, 'Path to the YAML file');
+        $this->addArgument('file', InputArgument::IS_ARRAY | InputArgument::REQUIRED, 'Path to one or more YAML files');
     }
 
     protected function execute(InputInterface $input, OutputInterface $output): int
@@ -42,59 +42,67 @@ final class CheckCommand extends Command
             ? $output->getErrorOutput()
             : $output;
 
-        /** @var string $filePath */
-        $filePath = $input->getArgument('file');
+        $fileArgument = $input->getArgument('file');
+        /** @var list<string> $filePaths */
+        $filePaths = is_array($fileArgument) ? $fileArgument : [$fileArgument];
+        $hadFailure = false;
 
-        try {
-            $content = $this->fileIO->read($filePath);
-        } catch (FileIOException $e) {
-            $errorOutput->writeln(sprintf('<error>%s</error>', $e->getMessage()));
-            return Command::FAILURE;
+        foreach ($filePaths as $filePath) {
+            try {
+                $content = $this->fileIO->read($filePath);
+            } catch (FileIOException $e) {
+                $errorOutput->writeln(sprintf('<error>%s (%s)</error>', $e->getMessage(), $filePath));
+                $hadFailure = true;
+                continue;
+            }
+
+            try {
+                $parsedFile = $this->parser->parse($content);
+            } catch (AmbiguousCommentException $e) {
+                $errorOutput->writeln(sprintf('<error>%s (%s)</error>', $e->getMessage(), $filePath));
+                $hadFailure = true;
+                continue;
+            }
+
+            if ($parsedFile->servicesHeader === '') {
+                $errorOutput->writeln(sprintf(
+                    '<comment>Warning: no services: key found in %s</comment>',
+                    $filePath,
+                ));
+                continue;
+            }
+
+            try {
+                $outOfOrder = $this->checker->check($parsedFile);
+            } catch (DuplicateServiceKeyException $e) {
+                $errorOutput->writeln(sprintf('<error>%s (%s)</error>', $e->getMessage(), $filePath));
+                $hadFailure = true;
+                continue;
+            }
+
+            if ($outOfOrder === []) {
+                $output->writeln(sprintf('All services are in order: %s', $filePath));
+                continue;
+            }
+
+            $hadFailure = true;
+            $errorOutput->writeln(sprintf('The following services are not in alphabetical order: %s', $filePath));
+            foreach ($outOfOrder as $entry) {
+                $errorOutput->writeln(sprintf(
+                    '  - %s%s should come after %s',
+                    $entry->key,
+                    $entry->subsequentCount > 0
+                        ? sprintf(
+                            ' (and %d subsequent service%s)',
+                            $entry->subsequentCount,
+                            $entry->subsequentCount === 1 ? '' : 's',
+                        )
+                        : '',
+                    $entry->predecessor,
+                ));
+            }
         }
 
-        try {
-            $parsedFile = $this->parser->parse($content);
-        } catch (AmbiguousCommentException $e) {
-            $errorOutput->writeln(sprintf('<error>%s</error>', $e->getMessage()));
-            return Command::FAILURE;
-        }
-
-        if ($parsedFile->servicesHeader === '') {
-            $errorOutput->writeln(sprintf(
-                '<comment>Warning: no services: key found in %s</comment>',
-                $filePath,
-            ));
-            return Command::SUCCESS;
-        }
-
-        try {
-            $outOfOrder = $this->checker->check($parsedFile);
-        } catch (DuplicateServiceKeyException $e) {
-            $errorOutput->writeln(sprintf('<error>%s</error>', $e->getMessage()));
-            return Command::FAILURE;
-        }
-
-        if ($outOfOrder === []) {
-            $output->writeln('All services are in order.');
-            return Command::SUCCESS;
-        }
-
-        $errorOutput->writeln('The following services are not in alphabetical order:');
-        foreach ($outOfOrder as $entry) {
-            $errorOutput->writeln(sprintf(
-                '  - %s%s should come after %s',
-                $entry->key,
-                $entry->subsequentCount > 0
-                    ? sprintf(
-                        ' (and %d subsequent service%s)',
-                        $entry->subsequentCount,
-                        $entry->subsequentCount === 1 ? '' : 's',
-                    )
-                    : '',
-                $entry->predecessor,
-            ));
-        }
-
-        return Command::FAILURE;
+        return $hadFailure ? Command::FAILURE : Command::SUCCESS;
     }
 }

@@ -22,10 +22,10 @@ The binary is available at `vendor/bin/sort-services`.
 
 ## Usage
 
-Run the binary with a subcommand and a target YAML file:
+Run the binary with a subcommand and one or more target YAML files:
 
 ```bash
-vendor/bin/sort-services <command> <path-to-yaml-file>
+vendor/bin/sort-services <command> <path-to-yaml-file>...
 ```
 
 ### Check
@@ -36,17 +36,33 @@ vendor/bin/sort-services check config/services.yaml
 
 `check` exits successfully when services are already in order and reports ordering problems otherwise.
 
+You can also check more than one file in one invocation:
+
+```bash
+vendor/bin/sort-services check config/services.yaml config/services_test.yaml
+```
+
 ### Fix
 
 ```bash
 vendor/bin/sort-services fix config/services.yaml
 ```
 
-`fix` rewrites the file in place. To print the sorted output instead, use:
+`fix` rewrites the file in place.
+
+You can also fix more than one file in one invocation:
+
+```bash
+vendor/bin/sort-services fix config/services.yaml config/services_test.yaml
+```
+
+To print the sorted output instead, use:
 
 ```bash
 vendor/bin/sort-services fix config/services.yaml --stdout
 ```
+
+`--stdout` only supports a single file.
 
 ## Compatibility
 
