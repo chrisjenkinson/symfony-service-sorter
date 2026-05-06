@@ -48,7 +48,7 @@ final class CheckCommandTest extends TestCase
 
     public function testSortedFileExitsZero(): void
     {
-        $input = "services:\n    App\\AlphaService:\n        autowire: true\n    App\\ZebraService:\n        autowire: true\n";
+        $input = "services:\n    App\\AlphaService:\n        autowire: true\n    App\\ZuluService:\n        autowire: true\n";
         $this->fileIO->method('read')->willReturn($input);
 
         $tester = $this->createCommandTester();
@@ -60,7 +60,7 @@ final class CheckCommandTest extends TestCase
 
     public function testUnsortedFileReportsOutOfOrder(): void
     {
-        $input = "services:\n    App\\ZebraService:\n        autowire: true\n    App\\AlphaService:\n        autowire: true\n";
+        $input = "services:\n    App\\ZuluService:\n        autowire: true\n    App\\AlphaService:\n        autowire: true\n";
         $this->fileIO->method('read')->willReturn($input);
 
         $tester = $this->createCommandTester();
@@ -68,14 +68,14 @@ final class CheckCommandTest extends TestCase
 
         self::assertSame(1, $tester->getStatusCode());
         self::assertStringContainsString('The following services are not in alphabetical order', $tester->getErrorOutput());
-        self::assertStringContainsString('App\\ZebraService', $tester->getErrorOutput());
+        self::assertStringContainsString('App\\ZuluService', $tester->getErrorOutput());
         self::assertStringContainsString('App\\AlphaService', $tester->getErrorOutput());
         self::assertStringContainsString('should come after', $tester->getErrorOutput());
     }
 
     public function testUnsortedFileWithoutGroupedRunDoesNotMentionZeroSubsequentServices(): void
     {
-        $input = "services:\n    App\\ZebraService:\n        autowire: true\n    App\\AlphaService:\n        autowire: true\n";
+        $input = "services:\n    App\\ZuluService:\n        autowire: true\n    App\\AlphaService:\n        autowire: true\n";
         $this->fileIO->method('read')->willReturn($input);
 
         $tester = $this->createCommandTester();
@@ -83,7 +83,7 @@ final class CheckCommandTest extends TestCase
 
         self::assertSame(1, $tester->getStatusCode());
         self::assertStringContainsString(
-            'App\\ZebraService should come after App\\AlphaService',
+            'App\\ZuluService should come after App\\AlphaService',
             $tester->getErrorOutput(),
         );
         self::assertStringNotContainsString('(and 0 subsequent services)', $tester->getErrorOutput());
@@ -131,6 +131,84 @@ YAML;
         self::assertStringContainsString('File not found', $tester->getErrorOutput());
     }
 
+    public function testMultipleSortedFilesExitZero(): void
+    {
+        $inputOne = "services:\n    App\\AlphaService:\n        autowire: true\n";
+        $inputTwo = "services:\n    App\\BravoService:\n        autowire: true\n";
+
+        $this->fileIO->method('read')->willReturnMap([
+            ['/path/one.yaml', $inputOne],
+            ['/path/two.yaml', $inputTwo],
+        ]);
+
+        $tester = $this->createCommandTester();
+        $tester->execute(['file' => ['/path/one.yaml', '/path/two.yaml']], ['capture_stderr_separately' => true]);
+
+        self::assertSame(0, $tester->getStatusCode());
+        self::assertStringContainsString('/path/one.yaml', $tester->getDisplay());
+        self::assertStringContainsString('/path/two.yaml', $tester->getDisplay());
+    }
+
+    public function testUnsortedFileDoesNotStopLaterFiles(): void
+    {
+        $sorted = "services:\n    App\\AlphaService:\n        autowire: true\n";
+        $unsorted = "services:\n    App\\ZuluService:\n        autowire: true\n    App\\AlphaService:\n        autowire: true\n";
+
+        $this->fileIO->method('read')->willReturnMap([
+            ['/path/unsorted.yaml', $unsorted],
+            ['/path/sorted.yaml', $sorted],
+        ]);
+
+        $tester = $this->createCommandTester();
+        $tester->execute(['file' => ['/path/unsorted.yaml', '/path/sorted.yaml']], ['capture_stderr_separately' => true]);
+
+        self::assertSame(1, $tester->getStatusCode());
+        self::assertStringContainsString('/path/unsorted.yaml', $tester->getErrorOutput());
+        self::assertStringContainsString('should come after', $tester->getErrorOutput());
+        self::assertStringContainsString('/path/sorted.yaml', $tester->getDisplay());
+    }
+
+    public function testReadFailureDoesNotStopLaterFiles(): void
+    {
+        $sorted = "services:\n    App\\AlphaService:\n        autowire: true\n";
+
+        $this->fileIO
+            ->method('read')
+            ->willReturnCallback(static function (string $path) use ($sorted): string {
+                if ($path === '/missing.yaml') {
+                    throw new FileIOException('File not found: /missing.yaml');
+                }
+
+                return $sorted;
+            });
+
+        $tester = $this->createCommandTester();
+        $tester->execute(['file' => ['/missing.yaml', '/path/sorted.yaml']], ['capture_stderr_separately' => true]);
+
+        self::assertSame(1, $tester->getStatusCode());
+        self::assertStringContainsString('/missing.yaml', $tester->getErrorOutput());
+        self::assertStringContainsString('/path/sorted.yaml', $tester->getDisplay());
+    }
+
+    public function testDuplicateServiceKeyDoesNotStopLaterFiles(): void
+    {
+        $duplicate = "services:\n    App\\AlphaService:\n        autowire: true\n    App\\AlphaService:\n        autowire: true\n";
+        $sorted = "services:\n    App\\BravoService:\n        autowire: true\n";
+
+        $this->fileIO->method('read')->willReturnMap([
+            ['/path/duplicate.yaml', $duplicate],
+            ['/path/sorted.yaml', $sorted],
+        ]);
+
+        $tester = $this->createCommandTester();
+        $tester->execute(['file' => ['/path/duplicate.yaml', '/path/sorted.yaml']], ['capture_stderr_separately' => true]);
+
+        self::assertSame(1, $tester->getStatusCode());
+        self::assertStringContainsString('/path/duplicate.yaml', $tester->getErrorOutput());
+        self::assertStringContainsString('Duplicate service key', $tester->getErrorOutput());
+        self::assertStringContainsString('/path/sorted.yaml', $tester->getDisplay());
+    }
+
     public function testNoServicesKeyExitsZeroWithWarning(): void
     {
         $input = "parameters:\n    locale: en\n";
@@ -158,7 +236,7 @@ YAML;
 
     public function testDuplicateServiceKeyExitsOne(): void
     {
-        $input = "services:\n    App\\Foo:\n        autowire: true\n    App\\Foo:\n        autowire: true\n";
+        $input = "services:\n    App\\AlphaService:\n        autowire: true\n    App\\AlphaService:\n        autowire: true\n";
         $this->fileIO->method('read')->willReturn($input);
 
         $tester = $this->createCommandTester();

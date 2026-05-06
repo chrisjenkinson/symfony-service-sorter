@@ -136,6 +136,21 @@ final class CheckFixCommandTest extends TestCase
         self::assertStringContainsString('All services are in order', $tester->getDisplay());
     }
 
+    public function testCheckMultipleFilesReportsPerFileResults(): void
+    {
+        $sortedPath = $this->createTempFixtureFile('basic/expected.yaml');
+        $noServicesPath = $this->createTempFixtureFile('no-services-key/input.yaml');
+        $unsortedPath = $this->createTempFixtureFile('basic/input.yaml');
+
+        $tester = $this->createCheckCommandTester();
+        $tester->execute(['file' => [$sortedPath, $noServicesPath, $unsortedPath]], ['capture_stderr_separately' => true]);
+
+        self::assertSame(1, $tester->getStatusCode());
+        self::assertStringContainsString($sortedPath, $tester->getDisplay());
+        self::assertStringContainsString($noServicesPath, $tester->getErrorOutput());
+        self::assertStringContainsString($unsortedPath, $tester->getErrorOutput());
+    }
+
     #[DataProvider('fixtureProvider')]
     public function testFixStdoutMatchesExpected(string $fixtureName): void
     {
@@ -160,6 +175,23 @@ final class CheckFixCommandTest extends TestCase
         self::assertSame($expected, $this->fileIO->read($path));
     }
 
+    public function testFixMultipleFilesWritesAllFiles(): void
+    {
+        $firstPath = $this->createTempFixtureFile('basic/input.yaml');
+        $secondPath = $this->createTempFixtureFile('underscore-pinned/input.yaml');
+        $firstExpected = $this->readFixture('basic/expected.yaml');
+        $secondExpected = $this->readFixture('underscore-pinned/expected.yaml');
+
+        $tester = $this->createFixCommandTester();
+        $tester->execute(['file' => [$firstPath, $secondPath]], ['capture_stderr_separately' => true]);
+
+        self::assertSame(0, $tester->getStatusCode());
+        self::assertStringContainsString($firstPath, $tester->getDisplay());
+        self::assertStringContainsString($secondPath, $tester->getDisplay());
+        self::assertSame($firstExpected, $this->fileIO->read($firstPath));
+        self::assertSame($secondExpected, $this->fileIO->read($secondPath));
+    }
+
     public function testFixNoServicesKeyWithStdout(): void
     {
         $path = $this->createTempFixtureFile('no-services-key/input.yaml');
@@ -170,6 +202,18 @@ final class CheckFixCommandTest extends TestCase
         self::assertSame(0, $tester->getStatusCode());
         self::assertStringContainsString('no services: key found', $tester->getErrorOutput());
         self::assertStringContainsString('parameters:', $tester->getDisplay());
+    }
+
+    public function testFixStdoutWithMultipleFilesFailsImmediately(): void
+    {
+        $firstPath = $this->createTempFixtureFile('basic/input.yaml');
+        $secondPath = $this->createTempFixtureFile('comments/input.yaml');
+
+        $tester = $this->createFixCommandTester();
+        $tester->execute(['file' => [$firstPath, $secondPath], '--stdout' => true], ['capture_stderr_separately' => true]);
+
+        self::assertSame(1, $tester->getStatusCode());
+        self::assertStringContainsString('single file', $tester->getErrorOutput());
     }
 
     /**
