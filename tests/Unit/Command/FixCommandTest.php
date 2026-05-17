@@ -100,7 +100,7 @@ final class FixCommandTest extends TestCase
 
     public function testWriteFailureReturnsFailure(): void
     {
-        $input = "services:\n    App\\AlphaService:\n        autowire: true\n";
+        $input = "services:\n    App\\ZuluService:\n        autowire: true\n    App\\AlphaService:\n        autowire: true\n";
         $this->fileIO->method('read')->willReturn($input);
         $this->fileIO->method('write')->willThrowException(new FileIOException('Could not write to file: /readonly.yaml'));
 
@@ -111,17 +111,18 @@ final class FixCommandTest extends TestCase
         self::assertStringContainsString('Could not write to file', $tester->getErrorOutput());
     }
 
-    public function testNoServicesKeyOutputsWarningAndWritesInPlace(): void
+    public function testNoServicesKeyOutputsWarningAndDoesNotWriteUnchangedFile(): void
     {
         $input = "parameters:\n    locale: en\n";
         $this->fileIO->method('read')->willReturn($input);
-        $this->fileIO->expects(self::once())->method('write')->with('/path/to/file.yaml', $input);
+        $this->fileIO->expects(self::never())->method('write');
 
         $tester = $this->createCommandTester();
         $tester->execute(['file' => '/path/to/file.yaml'], ['capture_stderr_separately' => true]);
 
         self::assertSame(0, $tester->getStatusCode());
         self::assertStringContainsString('no services: key found', $tester->getErrorOutput());
+        self::assertStringContainsString('Unchanged: /path/to/file.yaml', $tester->getDisplay());
     }
 
     public function testNoServicesKeyWithStdoutOutputsUnchangedToStdout(): void
@@ -157,9 +158,23 @@ final class FixCommandTest extends TestCase
         self::assertStringContainsString('/path/two.yaml', $tester->getDisplay());
     }
 
-    public function testWriteFailureDoesNotStopLaterFiles(): void
+    public function testFixReportsUnchangedFileWithoutWriting(): void
     {
         $input = "services:\n    App\\AlphaService:\n        autowire: true\n";
+        $this->fileIO->method('read')->willReturn($input);
+        $this->fileIO->expects(self::never())->method('write');
+
+        $tester = $this->createCommandTester();
+        $tester->execute(['file' => '/path/sorted.yaml'], ['capture_stderr_separately' => true]);
+
+        self::assertSame(0, $tester->getStatusCode());
+        self::assertStringContainsString('Unchanged: /path/sorted.yaml', $tester->getDisplay());
+        self::assertStringNotContainsString('Fixed: /path/sorted.yaml', $tester->getDisplay());
+    }
+
+    public function testWriteFailureDoesNotStopLaterFiles(): void
+    {
+        $input = "services:\n    App\\ZuluService:\n        autowire: true\n    App\\AlphaService:\n        autowire: true\n";
 
         $this->fileIO->method('read')->willReturn($input);
         $this->fileIO
@@ -192,14 +207,14 @@ final class FixCommandTest extends TestCase
                 return $sorted;
             });
 
-        $this->fileIO->expects(self::once())->method('write')->with('/ok.yaml', $sorted);
+        $this->fileIO->expects(self::never())->method('write');
 
         $tester = $this->createCommandTester();
         $tester->execute(['file' => ['/missing.yaml', '/ok.yaml']], ['capture_stderr_separately' => true]);
 
         self::assertSame(1, $tester->getStatusCode());
         self::assertStringContainsString('/missing.yaml', $tester->getErrorOutput());
-        self::assertStringContainsString('/ok.yaml', $tester->getDisplay());
+        self::assertStringContainsString('Unchanged: /ok.yaml', $tester->getDisplay());
     }
 
     public function testDuplicateServiceKeyDoesNotStopLaterFiles(): void
@@ -212,7 +227,7 @@ final class FixCommandTest extends TestCase
             ['/path/sorted.yaml', $sorted],
         ]);
 
-        $this->fileIO->expects(self::once())->method('write')->with('/path/sorted.yaml', $sorted);
+        $this->fileIO->expects(self::never())->method('write');
 
         $tester = $this->createCommandTester();
         $tester->execute(['file' => ['/path/duplicate.yaml', '/path/sorted.yaml']], ['capture_stderr_separately' => true]);
@@ -220,7 +235,7 @@ final class FixCommandTest extends TestCase
         self::assertSame(1, $tester->getStatusCode());
         self::assertStringContainsString('/path/duplicate.yaml', $tester->getErrorOutput());
         self::assertStringContainsString('Duplicate service key', $tester->getErrorOutput());
-        self::assertStringContainsString('/path/sorted.yaml', $tester->getDisplay());
+        self::assertStringContainsString('Unchanged: /path/sorted.yaml', $tester->getDisplay());
     }
 
     public function testFixStdoutRejectsMultipleFiles(): void
