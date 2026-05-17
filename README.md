@@ -48,7 +48,7 @@ vendor/bin/sort-services check config/services.yaml config/services_test.yaml
 vendor/bin/sort-services fix config/services.yaml
 ```
 
-`fix` rewrites the file in place.
+`fix` rewrites files in place only when sorting changes their contents. Files that are already sorted are reported as `Unchanged`.
 
 You can also fix more than one file in one invocation:
 
