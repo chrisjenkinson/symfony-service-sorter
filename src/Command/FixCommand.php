@@ -92,6 +92,11 @@ final class FixCommand extends Command
                 continue;
             }
 
+            if ($sorted === $content) {
+                $output->writeln(sprintf('Unchanged: %s', $filePath));
+                continue;
+            }
+
             try {
                 $this->fileIO->write($filePath, $sorted);
             } catch (FileIOException $e) {
