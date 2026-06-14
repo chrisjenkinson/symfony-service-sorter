@@ -16,7 +16,6 @@ use App\Parser\YamlServiceParser;
 use App\Sorter\ServiceKeyNormalizer;
 use App\Sorter\ServiceKeySorter;
 use App\Sorter\ServicesSorter;
-use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
 use Symfony\Component\Console\Tester\CommandTester;
 
@@ -24,7 +23,7 @@ final class FixCommandTest extends TestCase
 {
     private YamlServiceParser $parser;
     private ServicesSorter $sorter;
-    private FileIO&MockObject $fileIO;
+    private FileIO $fileIO;
 
     protected function setUp(): void
     {
@@ -37,7 +36,7 @@ final class FixCommandTest extends TestCase
             ),
         );
         $this->sorter = new ServicesSorter(new ServiceKeySorter(new ServiceKeyNormalizer()), new ServiceKeyNormalizer());
-        $this->fileIO = $this->createMock(FileIO::class);
+        $this->fileIO = TestFileIO::reads('');
     }
 
     private function createCommandTester(): CommandTester
@@ -49,21 +48,21 @@ final class FixCommandTest extends TestCase
     public function testFixWritesInPlaceByDefault(): void
     {
         $input = "services:\n    App\\ZuluService:\n        autowire: true\n    App\\AlphaService:\n        autowire: true\n";
-        $this->fileIO->method('read')->willReturn($input);
+        $this->fileIO = TestFileIO::reads($input);
 
         $expectedSorted = "services:\n    App\\AlphaService:\n        autowire: true\n\n    App\\ZuluService:\n        autowire: true\n";
-        $this->fileIO->expects(self::once())->method('write')->with('/path/to/services.yaml', $expectedSorted);
 
         $tester = $this->createCommandTester();
         $tester->execute(['file' => '/path/to/services.yaml']);
 
         self::assertSame(0, $tester->getStatusCode());
+        self::assertSame([['path' => '/path/to/services.yaml', 'content' => $expectedSorted]], $this->fileIO->writes);
     }
 
     public function testFixWithStdoutOutputsToStdout(): void
     {
         $input = "services:\n    App\\ZuluService:\n        autowire: true\n    App\\AlphaService:\n        autowire: true\n";
-        $this->fileIO->method('read')->willReturn($input);
+        $this->fileIO = TestFileIO::reads($input);
 
         $tester = $this->createCommandTester();
         $tester->execute(['file' => '/path/to/services.yaml', '--stdout' => true]);
@@ -78,18 +77,20 @@ final class FixCommandTest extends TestCase
     public function testFixWithStdoutDoesNotWriteFile(): void
     {
         $input = "services:\n    App\\AlphaService:\n        autowire: true\n";
-        $this->fileIO->method('read')->willReturn($input);
-        $this->fileIO->expects(self::never())->method('write');
+        $this->fileIO = TestFileIO::reads($input);
 
         $tester = $this->createCommandTester();
         $tester->execute(['file' => '/path/to/services.yaml', '--stdout' => true]);
 
         self::assertSame(0, $tester->getStatusCode());
+        self::assertSame([], $this->fileIO->writes);
     }
 
     public function testReadFailureReturnsFailure(): void
     {
-        $this->fileIO->method('read')->willThrowException(new FileIOException('File not found: /missing.yaml'));
+        $this->fileIO = TestFileIO::readsWith(static function (): string {
+            throw new FileIOException('File not found: /missing.yaml');
+        });
 
         $tester = $this->createCommandTester();
         $tester->execute(['file' => '/missing.yaml'], ['capture_stderr_separately' => true]);
@@ -101,8 +102,9 @@ final class FixCommandTest extends TestCase
     public function testWriteFailureReturnsFailure(): void
     {
         $input = "services:\n    App\\ZuluService:\n        autowire: true\n    App\\AlphaService:\n        autowire: true\n";
-        $this->fileIO->method('read')->willReturn($input);
-        $this->fileIO->method('write')->willThrowException(new FileIOException('Could not write to file: /readonly.yaml'));
+        $this->fileIO = TestFileIO::reads($input)->withWriter(static function (): void {
+            throw new FileIOException('Could not write to file: /readonly.yaml');
+        });
 
         $tester = $this->createCommandTester();
         $tester->execute(['file' => '/readonly.yaml'], ['capture_stderr_separately' => true]);
@@ -114,13 +116,13 @@ final class FixCommandTest extends TestCase
     public function testNoServicesKeyOutputsWarningAndDoesNotWriteUnchangedFile(): void
     {
         $input = "parameters:\n    locale: en\n";
-        $this->fileIO->method('read')->willReturn($input);
-        $this->fileIO->expects(self::never())->method('write');
+        $this->fileIO = TestFileIO::reads($input);
 
         $tester = $this->createCommandTester();
         $tester->execute(['file' => '/path/to/file.yaml'], ['capture_stderr_separately' => true]);
 
         self::assertSame(0, $tester->getStatusCode());
+        self::assertSame([], $this->fileIO->writes);
         self::assertStringContainsString('no services: key found', $tester->getErrorOutput());
         self::assertStringContainsString('Unchanged: /path/to/file.yaml', $tester->getDisplay());
     }
@@ -128,7 +130,7 @@ final class FixCommandTest extends TestCase
     public function testNoServicesKeyWithStdoutOutputsUnchangedToStdout(): void
     {
         $input = "parameters:\n    locale: en\n";
-        $this->fileIO->method('read')->willReturn($input);
+        $this->fileIO = TestFileIO::reads($input);
 
         $tester = $this->createCommandTester();
         $tester->execute(['file' => '/path/to/file.yaml', '--stdout' => true], ['capture_stderr_separately' => true]);
@@ -143,17 +145,16 @@ final class FixCommandTest extends TestCase
         $first = "services:\n    App\\ZuluService:\n        autowire: true\n    App\\AlphaService:\n        autowire: true\n";
         $second = "services:\n    App\\BravoService:\n        autowire: true\n    App\\AlphaService:\n        autowire: true\n";
 
-        $this->fileIO->method('read')->willReturnMap([
-            ['/path/one.yaml', $first],
-            ['/path/two.yaml', $second],
+        $this->fileIO = TestFileIO::readsMap([
+            '/path/one.yaml' => $first,
+            '/path/two.yaml' => $second,
         ]);
-
-        $this->fileIO->expects(self::exactly(2))->method('write');
 
         $tester = $this->createCommandTester();
         $tester->execute(['file' => ['/path/one.yaml', '/path/two.yaml']], ['capture_stderr_separately' => true]);
 
         self::assertSame(0, $tester->getStatusCode());
+        self::assertCount(2, $this->fileIO->writes);
         self::assertStringContainsString('/path/one.yaml', $tester->getDisplay());
         self::assertStringContainsString('/path/two.yaml', $tester->getDisplay());
     }
@@ -161,13 +162,13 @@ final class FixCommandTest extends TestCase
     public function testFixReportsUnchangedFileWithoutWriting(): void
     {
         $input = "services:\n    App\\AlphaService:\n        autowire: true\n";
-        $this->fileIO->method('read')->willReturn($input);
-        $this->fileIO->expects(self::never())->method('write');
+        $this->fileIO = TestFileIO::reads($input);
 
         $tester = $this->createCommandTester();
         $tester->execute(['file' => '/path/sorted.yaml'], ['capture_stderr_separately' => true]);
 
         self::assertSame(0, $tester->getStatusCode());
+        self::assertSame([], $this->fileIO->writes);
         self::assertStringContainsString('Unchanged: /path/sorted.yaml', $tester->getDisplay());
         self::assertStringNotContainsString('Fixed: /path/sorted.yaml', $tester->getDisplay());
     }
@@ -176,14 +177,13 @@ final class FixCommandTest extends TestCase
     {
         $input = "services:\n    App\\ZuluService:\n        autowire: true\n    App\\AlphaService:\n        autowire: true\n";
 
-        $this->fileIO->method('read')->willReturn($input);
-        $this->fileIO
-            ->method('write')
-            ->willReturnCallback(static function (string $path, string $content): void {
+        $this->fileIO = TestFileIO::reads($input)->withWriter(
+            static function (string $path, string $content): void {
                 if ($path === '/readonly.yaml') {
                     throw new FileIOException('Could not write to file: /readonly.yaml');
                 }
-            });
+            },
+        );
 
         $tester = $this->createCommandTester();
         $tester->execute(['file' => ['/readonly.yaml', '/ok.yaml']], ['capture_stderr_separately' => true]);
@@ -197,22 +197,21 @@ final class FixCommandTest extends TestCase
     {
         $sorted = "services:\n    App\\AlphaService:\n        autowire: true\n";
 
-        $this->fileIO
-            ->method('read')
-            ->willReturnCallback(static function (string $path) use ($sorted): string {
+        $this->fileIO = TestFileIO::readsWith(
+            static function (string $path) use ($sorted): string {
                 if ($path === '/missing.yaml') {
                     throw new FileIOException('File not found: /missing.yaml');
                 }
 
                 return $sorted;
-            });
-
-        $this->fileIO->expects(self::never())->method('write');
+            },
+        );
 
         $tester = $this->createCommandTester();
         $tester->execute(['file' => ['/missing.yaml', '/ok.yaml']], ['capture_stderr_separately' => true]);
 
         self::assertSame(1, $tester->getStatusCode());
+        self::assertSame([], $this->fileIO->writes);
         self::assertStringContainsString('/missing.yaml', $tester->getErrorOutput());
         self::assertStringContainsString('Unchanged: /ok.yaml', $tester->getDisplay());
     }
@@ -222,17 +221,16 @@ final class FixCommandTest extends TestCase
         $duplicate = "services:\n    App\\AlphaService:\n        autowire: true\n    App\\AlphaService:\n        autowire: true\n";
         $sorted = "services:\n    App\\BravoService:\n        autowire: true\n";
 
-        $this->fileIO->method('read')->willReturnMap([
-            ['/path/duplicate.yaml', $duplicate],
-            ['/path/sorted.yaml', $sorted],
+        $this->fileIO = TestFileIO::readsMap([
+            '/path/duplicate.yaml' => $duplicate,
+            '/path/sorted.yaml' => $sorted,
         ]);
-
-        $this->fileIO->expects(self::never())->method('write');
 
         $tester = $this->createCommandTester();
         $tester->execute(['file' => ['/path/duplicate.yaml', '/path/sorted.yaml']], ['capture_stderr_separately' => true]);
 
         self::assertSame(1, $tester->getStatusCode());
+        self::assertSame([], $this->fileIO->writes);
         self::assertStringContainsString('/path/duplicate.yaml', $tester->getErrorOutput());
         self::assertStringContainsString('Duplicate service key', $tester->getErrorOutput());
         self::assertStringContainsString('Unchanged: /path/sorted.yaml', $tester->getDisplay());
@@ -240,8 +238,9 @@ final class FixCommandTest extends TestCase
 
     public function testFixStdoutRejectsMultipleFiles(): void
     {
-        $this->fileIO->expects(self::never())->method('read');
-        $this->fileIO->expects(self::never())->method('write');
+        $this->fileIO = TestFileIO::readsWith(static function (): string {
+            self::fail('File should not be read when --stdout is used with multiple files.');
+        });
 
         $tester = $this->createCommandTester();
         $tester->execute(
@@ -256,7 +255,7 @@ final class FixCommandTest extends TestCase
     public function testDuplicateServiceKeyExitsOne(): void
     {
         $input = "services:\n    App\\AlphaService:\n        autowire: true\n    App\\AlphaService:\n        autowire: true\n";
-        $this->fileIO->method('read')->willReturn($input);
+        $this->fileIO = TestFileIO::reads($input);
 
         $tester = $this->createCommandTester();
         $tester->execute(['file' => '/path/to/services.yaml'], ['capture_stderr_separately' => true]);

@@ -16,7 +16,6 @@ use App\Parser\YamlServiceParser;
 use App\Sorter\ServiceKeyNormalizer;
 use App\Sorter\ServiceKeySorter;
 use App\Sorter\ServiceOrderChecker;
-use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
 use Symfony\Component\Console\Tester\CommandTester;
 
@@ -24,7 +23,7 @@ final class CheckCommandTest extends TestCase
 {
     private YamlServiceParser $parser;
     private ServiceOrderChecker $checker;
-    private FileIO&MockObject $fileIO;
+    private FileIO $fileIO;
 
     protected function setUp(): void
     {
@@ -37,7 +36,7 @@ final class CheckCommandTest extends TestCase
             ),
         );
         $this->checker = new ServiceOrderChecker(new ServiceKeySorter(new ServiceKeyNormalizer()));
-        $this->fileIO = $this->createMock(FileIO::class);
+        $this->fileIO = TestFileIO::reads('');
     }
 
     private function createCommandTester(): CommandTester
@@ -49,7 +48,7 @@ final class CheckCommandTest extends TestCase
     public function testSortedFileExitsZero(): void
     {
         $input = "services:\n    App\\AlphaService:\n        autowire: true\n    App\\ZuluService:\n        autowire: true\n";
-        $this->fileIO->method('read')->willReturn($input);
+        $this->fileIO = TestFileIO::reads($input);
 
         $tester = $this->createCommandTester();
         $tester->execute(['file' => '/path/to/services.yaml'], ['capture_stderr_separately' => true]);
@@ -61,7 +60,7 @@ final class CheckCommandTest extends TestCase
     public function testUnsortedFileReportsOutOfOrder(): void
     {
         $input = "services:\n    App\\ZuluService:\n        autowire: true\n    App\\AlphaService:\n        autowire: true\n";
-        $this->fileIO->method('read')->willReturn($input);
+        $this->fileIO = TestFileIO::reads($input);
 
         $tester = $this->createCommandTester();
         $tester->execute(['file' => '/path/to/services.yaml'], ['capture_stderr_separately' => true]);
@@ -76,7 +75,7 @@ final class CheckCommandTest extends TestCase
     public function testUnsortedFileWithoutGroupedRunDoesNotMentionZeroSubsequentServices(): void
     {
         $input = "services:\n    App\\ZuluService:\n        autowire: true\n    App\\AlphaService:\n        autowire: true\n";
-        $this->fileIO->method('read')->willReturn($input);
+        $this->fileIO = TestFileIO::reads($input);
 
         $tester = $this->createCommandTester();
         $tester->execute(['file' => '/path/to/services.yaml'], ['capture_stderr_separately' => true]);
@@ -108,7 +107,7 @@ services:
     App\Example\Charlie:
         autowire: true
 YAML;
-        $this->fileIO->method('read')->willReturn($input);
+        $this->fileIO = TestFileIO::reads($input);
 
         $tester = $this->createCommandTester();
         $tester->execute(['file' => '/path/to/services.yaml'], ['capture_stderr_separately' => true]);
@@ -122,7 +121,9 @@ YAML;
 
     public function testFileNotFoundExitsOne(): void
     {
-        $this->fileIO->method('read')->willThrowException(new FileIOException('File not found: /missing.yaml'));
+        $this->fileIO = TestFileIO::readsWith(static function (): string {
+            throw new FileIOException('File not found: /missing.yaml');
+        });
 
         $tester = $this->createCommandTester();
         $tester->execute(['file' => '/missing.yaml'], ['capture_stderr_separately' => true]);
@@ -136,9 +137,9 @@ YAML;
         $inputOne = "services:\n    App\\AlphaService:\n        autowire: true\n";
         $inputTwo = "services:\n    App\\BravoService:\n        autowire: true\n";
 
-        $this->fileIO->method('read')->willReturnMap([
-            ['/path/one.yaml', $inputOne],
-            ['/path/two.yaml', $inputTwo],
+        $this->fileIO = TestFileIO::readsMap([
+            '/path/one.yaml' => $inputOne,
+            '/path/two.yaml' => $inputTwo,
         ]);
 
         $tester = $this->createCommandTester();
@@ -154,9 +155,9 @@ YAML;
         $sorted = "services:\n    App\\AlphaService:\n        autowire: true\n";
         $unsorted = "services:\n    App\\ZuluService:\n        autowire: true\n    App\\AlphaService:\n        autowire: true\n";
 
-        $this->fileIO->method('read')->willReturnMap([
-            ['/path/unsorted.yaml', $unsorted],
-            ['/path/sorted.yaml', $sorted],
+        $this->fileIO = TestFileIO::readsMap([
+            '/path/unsorted.yaml' => $unsorted,
+            '/path/sorted.yaml' => $sorted,
         ]);
 
         $tester = $this->createCommandTester();
@@ -172,15 +173,15 @@ YAML;
     {
         $sorted = "services:\n    App\\AlphaService:\n        autowire: true\n";
 
-        $this->fileIO
-            ->method('read')
-            ->willReturnCallback(static function (string $path) use ($sorted): string {
+        $this->fileIO = TestFileIO::readsWith(
+            static function (string $path) use ($sorted): string {
                 if ($path === '/missing.yaml') {
                     throw new FileIOException('File not found: /missing.yaml');
                 }
 
                 return $sorted;
-            });
+            },
+        );
 
         $tester = $this->createCommandTester();
         $tester->execute(['file' => ['/missing.yaml', '/path/sorted.yaml']], ['capture_stderr_separately' => true]);
@@ -195,9 +196,9 @@ YAML;
         $duplicate = "services:\n    App\\AlphaService:\n        autowire: true\n    App\\AlphaService:\n        autowire: true\n";
         $sorted = "services:\n    App\\BravoService:\n        autowire: true\n";
 
-        $this->fileIO->method('read')->willReturnMap([
-            ['/path/duplicate.yaml', $duplicate],
-            ['/path/sorted.yaml', $sorted],
+        $this->fileIO = TestFileIO::readsMap([
+            '/path/duplicate.yaml' => $duplicate,
+            '/path/sorted.yaml' => $sorted,
         ]);
 
         $tester = $this->createCommandTester();
@@ -212,7 +213,7 @@ YAML;
     public function testNoServicesKeyExitsZeroWithWarning(): void
     {
         $input = "parameters:\n    locale: en\n";
-        $this->fileIO->method('read')->willReturn($input);
+        $this->fileIO = TestFileIO::reads($input);
 
         $tester = $this->createCommandTester();
         $tester->execute(['file' => '/path/to/file.yaml'], ['capture_stderr_separately' => true]);
@@ -225,7 +226,7 @@ YAML;
     public function testEmptyServicesBlockExitsZero(): void
     {
         $input = "services:\n\nparameters:\n    locale: en\n";
-        $this->fileIO->method('read')->willReturn($input);
+        $this->fileIO = TestFileIO::reads($input);
 
         $tester = $this->createCommandTester();
         $tester->execute(['file' => '/path/to/file.yaml'], ['capture_stderr_separately' => true]);
@@ -237,7 +238,7 @@ YAML;
     public function testDuplicateServiceKeyExitsOne(): void
     {
         $input = "services:\n    App\\AlphaService:\n        autowire: true\n    App\\AlphaService:\n        autowire: true\n";
-        $this->fileIO->method('read')->willReturn($input);
+        $this->fileIO = TestFileIO::reads($input);
 
         $tester = $this->createCommandTester();
         $tester->execute(['file' => '/path/to/services.yaml'], ['capture_stderr_separately' => true]);
