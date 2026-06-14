@@ -15,9 +15,9 @@
         "symfony/console": "^6.0 || ^7.0 || ^8.0"
     },
     "require-dev": {
-        "infection/infection": "^0.33",
+        "infection/infection": "0.32.6",
         "phpstan/phpstan": "^2.2",
-        "phpunit/phpunit": "^13",
+        "phpunit/phpunit": "^11.5",
         "symplify/easy-coding-standard": "^13"
     },
     "autoload": {
