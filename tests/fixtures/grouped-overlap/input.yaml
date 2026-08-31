@@ -1,0 +1,10 @@
+services:
+    App\ZuluService: ~
+
+    App\AlphaService: ~
+
+    # Read model services
+
+    App\BravoService: ~
+
+    App\CharlieService: ~

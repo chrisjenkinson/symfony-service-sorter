@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Tests\Unit\Sorter;
 
 use App\Parser\ServiceChunk;
+use App\Parser\ServiceGroup;
 use App\Sorter\DuplicateServiceKeyException;
 use App\Sorter\ServiceKeyNormalizer;
 use App\Sorter\ServiceKeySorter;
@@ -59,5 +60,46 @@ final class ServiceKeySorterTest extends TestCase
 
         self::assertSame('app.read_model', $result[0]->key);
         self::assertSame('App\\ReadModel', $result[1]->key);
+    }
+
+    public function testSortGroupsOrdersChunksThenGroupsByFirstKey(): void
+    {
+        $groups = [
+            new ServiceGroup(null, [
+                new ServiceChunk('App\\CharlieService', []),
+                new ServiceChunk('App\\BravoService', []),
+            ]),
+            new ServiceGroup(null, [
+                new ServiceChunk('App\\ZuluService', []),
+                new ServiceChunk('App\\AlphaService', []),
+            ]),
+        ];
+
+        $result = $this->keySorter->sortGroups($groups);
+
+        self::assertSame(
+            [
+                ['App\\AlphaService', 'App\\ZuluService'],
+                ['App\\BravoService', 'App\\CharlieService'],
+            ],
+            array_map(
+                static fn (ServiceGroup $group): array => array_map(
+                    static fn (ServiceChunk $chunk): string => $chunk->key,
+                    $group->chunks,
+                ),
+                $result,
+            ),
+        );
+    }
+
+    public function testSortGroupsThrowsOnDuplicateKeysAcrossGroups(): void
+    {
+        $this->expectException(DuplicateServiceKeyException::class);
+        $this->expectExceptionMessage('Duplicate service key found: "App\\AlphaService"');
+
+        $this->keySorter->sortGroups([
+            new ServiceGroup(null, [new ServiceChunk('App\\AlphaService', [])]),
+            new ServiceGroup(null, [new ServiceChunk('App\\AlphaService', [])]),
+        ]);
     }
 }

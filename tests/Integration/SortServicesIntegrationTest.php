@@ -31,7 +31,7 @@ final class SortServicesIntegrationTest extends TestCase
                 new ServiceRegionDetector(),
             ),
         );
-        $this->sorter = new ServicesSorter(new ServiceKeySorter(new ServiceKeyNormalizer()), new ServiceKeyNormalizer());
+        $this->sorter = new ServicesSorter(new ServiceKeySorter(new ServiceKeyNormalizer()));
     }
 
     #[DataProvider('fixtureProvider')]

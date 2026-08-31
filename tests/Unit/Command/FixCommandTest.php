@@ -35,7 +35,7 @@ final class FixCommandTest extends TestCase
                 new ServiceRegionDetector(),
             ),
         );
-        $this->sorter = new ServicesSorter(new ServiceKeySorter(new ServiceKeyNormalizer()), new ServiceKeyNormalizer());
+        $this->sorter = new ServicesSorter(new ServiceKeySorter(new ServiceKeyNormalizer()));
         $this->fileIO = TestFileIO::reads('');
     }
 
