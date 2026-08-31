@@ -183,6 +183,10 @@ final class CheckFixCommandTest extends TestCase
 
         self::assertSame(0, $fixTester->getStatusCode());
         self::assertStringContainsString('Fixed:', $fixTester->getDisplay());
+        self::assertSame(
+            $this->readFixture('grouped-overlap/expected.yaml'),
+            $this->fileIO->read($path),
+        );
 
         $checkTester = $this->createCheckCommandTester();
         $checkTester->execute(['file' => $path], ['capture_stderr_separately' => true]);

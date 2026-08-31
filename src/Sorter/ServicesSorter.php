@@ -6,6 +6,7 @@ namespace App\Sorter;
 
 use App\Parser\ParsedFile;
 use App\Parser\ServiceChunk;
+use App\Parser\ServiceGroup;
 
 final class ServicesSorter
 {
@@ -33,13 +34,14 @@ final class ServicesSorter
                 }
                 $first = false;
 
-                if ($group->boundaryComment !== null) {
-                    $parts[] = $group->boundaryComment->line . "\n";
+                [$boundaryLines, $chunks] = $this->detachBoundaryLines($group);
+                if ($boundaryLines !== []) {
+                    $parts[] = implode('', $boundaryLines);
                 }
 
                 $groupChunks = array_map(
                     fn (ServiceChunk $chunk): ServiceChunk => $this->normalizeChunk($chunk),
-                    $group->chunks,
+                    $chunks,
                 );
 
                 foreach ($groupChunks as $i => $chunk) {
@@ -70,6 +72,40 @@ final class ServicesSorter
         }
 
         return $result;
+    }
+
+    /**
+     * @return array{list<string>, list<ServiceChunk>}
+     */
+    private function detachBoundaryLines(ServiceGroup $group): array
+    {
+        if ($group->boundaryComment === null || $group->boundaryComment->nextServiceKey === null) {
+            return [[], $group->chunks];
+        }
+
+        $chunks = $group->chunks;
+        foreach ($chunks as $chunkIndex => $chunk) {
+            if ($chunk->key !== $group->boundaryComment->nextServiceKey) {
+                continue;
+            }
+
+            foreach ($chunk->lines as $lineIndex => $line) {
+                $key = rtrim(rtrim(ltrim($line, " \t")), ':');
+                if ($key !== $chunk->key) {
+                    continue;
+                }
+
+                $boundaryLines = array_slice($chunk->lines, 0, $lineIndex);
+                $chunks[$chunkIndex] = new ServiceChunk(
+                    $chunk->key,
+                    array_slice($chunk->lines, $lineIndex),
+                );
+
+                return [$boundaryLines, $chunks];
+            }
+        }
+
+        return [[$group->boundaryComment->line . "\n"], $chunks];
     }
 
     private function normalizeChunk(ServiceChunk $chunk): ServiceChunk

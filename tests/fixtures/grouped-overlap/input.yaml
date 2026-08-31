@@ -5,6 +5,6 @@ services:
 
     # Read model services
 
-    App\BravoService: ~
-
     App\CharlieService: ~
+
+    App\BravoService: ~
