@@ -41,8 +41,7 @@ final class CheckFixCommandTest extends TestCase
             ),
         );
         $keySorter = new ServiceKeySorter(new ServiceKeyNormalizer());
-        $normalizer = new ServiceKeyNormalizer();
-        $this->sorter = new ServicesSorter($keySorter, $normalizer);
+        $this->sorter = new ServicesSorter($keySorter);
         $this->checker = new ServiceOrderChecker($keySorter);
         $this->fileIO = new NativeFileIO();
     }
@@ -173,6 +172,27 @@ final class CheckFixCommandTest extends TestCase
 
         self::assertSame(0, $tester->getStatusCode());
         self::assertSame($expected, $this->fileIO->read($path));
+    }
+
+    public function testFixedGroupedFilePassesCheck(): void
+    {
+        $path = $this->createTempFixtureFile('grouped-overlap/input.yaml');
+
+        $fixTester = $this->createFixCommandTester();
+        $fixTester->execute(['file' => $path], ['capture_stderr_separately' => true]);
+
+        self::assertSame(0, $fixTester->getStatusCode());
+        self::assertStringContainsString('Fixed:', $fixTester->getDisplay());
+        self::assertSame(
+            $this->readFixture('grouped-overlap/expected.yaml'),
+            $this->fileIO->read($path),
+        );
+
+        $checkTester = $this->createCheckCommandTester();
+        $checkTester->execute(['file' => $path], ['capture_stderr_separately' => true]);
+
+        self::assertSame(0, $checkTester->getStatusCode(), $checkTester->getErrorOutput());
+        self::assertStringContainsString('All services are in order', $checkTester->getDisplay());
     }
 
     public function testFixMultipleFilesWritesAllFiles(): void

@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Sorter;
 
 use App\Parser\ServiceChunk;
+use App\Parser\ServiceGroup;
 
 final class ServiceKeySorter
 {
@@ -22,18 +23,52 @@ final class ServiceKeySorter
     {
         $this->assertNoDuplicateKeys(array_map(fn (ServiceChunk $chunk): string => $chunk->key, $chunks));
 
-        $underscore = [];
-        $named = [];
+        return $this->sortUniqueChunks($chunks);
+    }
 
-        foreach ($chunks as $chunk) {
-            if (str_starts_with($chunk->key, '_')) {
-                $underscore[] = $chunk;
-            } else {
-                $named[] = $chunk;
+    /**
+     * @param list<ServiceGroup> $groups
+     * @return list<ServiceGroup>
+     * @throws DuplicateServiceKeyException If duplicate service keys are found
+     */
+    public function sortGroups(array $groups): array
+    {
+        $allKeys = [];
+        foreach ($groups as $group) {
+            foreach ($group->chunks as $chunk) {
+                $allKeys[] = $chunk->key;
             }
         }
+        $this->assertNoDuplicateKeys($allKeys);
 
-        return array_merge($this->stableSort($underscore), $this->stableSort($named));
+        $sortedGroups = array_map(
+            fn (ServiceGroup $group): ServiceGroup => new ServiceGroup(
+                $group->boundaryComment,
+                $this->sortUniqueChunks($group->chunks),
+            ),
+            $groups,
+        );
+
+        usort($sortedGroups, function (ServiceGroup $a, ServiceGroup $b): int {
+            $aFirstChunk = $a->chunks[0] ?? null;
+            $bFirstChunk = $b->chunks[0] ?? null;
+            $aFirstKey = $aFirstChunk !== null ? $aFirstChunk->key : '';
+            $bFirstKey = $bFirstChunk !== null ? $bFirstChunk->key : '';
+
+            $aNormalized = $this->normalizer->normalize($aFirstKey);
+            $bNormalized = $this->normalizer->normalize($bFirstKey);
+
+            $aUnderscore = str_starts_with($aNormalized, '_');
+            $bUnderscore = str_starts_with($bNormalized, '_');
+
+            if ($aUnderscore !== $bUnderscore) {
+                return $aUnderscore ? -1 : 1;
+            }
+
+            return strcmp($aNormalized, $bNormalized);
+        });
+
+        return $sortedGroups;
     }
 
     /**
@@ -86,6 +121,26 @@ final class ServiceKeySorter
                 ));
             }
         }
+    }
+
+    /**
+     * @param list<ServiceChunk> $chunks
+     * @return list<ServiceChunk>
+     */
+    private function sortUniqueChunks(array $chunks): array
+    {
+        $underscore = [];
+        $named = [];
+
+        foreach ($chunks as $chunk) {
+            if (str_starts_with($chunk->key, '_')) {
+                $underscore[] = $chunk;
+            } else {
+                $named[] = $chunk;
+            }
+        }
+
+        return array_merge($this->stableSort($underscore), $this->stableSort($named));
     }
 
     /**

@@ -6,6 +6,7 @@ namespace App\Sorter;
 
 use App\Parser\ParsedFile;
 use App\Parser\ServiceChunk;
+use App\Parser\ServiceGroup;
 
 final class ServiceOrderChecker
 {
@@ -25,7 +26,9 @@ final class ServiceOrderChecker
             return [];
         }
 
-        $sortedKeys = $this->keySorter->sortKeys($originalKeys);
+        $sortedKeys = $parsedFile->groups === []
+            ? $this->keySorter->sortKeys($originalKeys)
+            : $this->flattenGroupKeys($this->keySorter->sortGroups($parsedFile->groups));
         $sortedPosition = array_flip($sortedKeys);
 
         $predecessorInSorted = [];
@@ -58,6 +61,22 @@ final class ServiceOrderChecker
         }
 
         return $outOfOrder;
+    }
+
+    /**
+     * @param list<ServiceGroup> $groups
+     * @return list<string>
+     */
+    private function flattenGroupKeys(array $groups): array
+    {
+        $keys = [];
+        foreach ($groups as $group) {
+            foreach ($group->chunks as $chunk) {
+                $keys[] = $chunk->key;
+            }
+        }
+
+        return $keys;
     }
 
     /**

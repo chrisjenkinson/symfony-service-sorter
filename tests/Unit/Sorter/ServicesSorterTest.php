@@ -18,7 +18,7 @@ final class ServicesSorterTest extends TestCase
     protected function setUp(): void
     {
         $normalizer = new ServiceKeyNormalizer();
-        $this->sorter = new ServicesSorter(new ServiceKeySorter($normalizer), $normalizer);
+        $this->sorter = new ServicesSorter(new ServiceKeySorter($normalizer));
     }
 
     public function testSortsChunksAlphabetically(): void

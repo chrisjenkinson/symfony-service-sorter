@@ -12,7 +12,6 @@ final class ServicesSorter
 {
     public function __construct(
         private readonly ServiceKeySorter $keySorter,
-        private readonly ServiceKeyNormalizer $normalizer,
     ) {
     }
 
@@ -27,7 +26,7 @@ final class ServicesSorter
         $parts[] = $parsedFile->servicesHeader;
 
         if ($parsedFile->groups !== []) {
-            $sortedGroups = $this->sortGroups($parsedFile->groups);
+            $sortedGroups = $this->keySorter->sortGroups($parsedFile->groups);
             $first = true;
             foreach ($sortedGroups as $group) {
                 if (!$first) {
@@ -35,13 +34,14 @@ final class ServicesSorter
                 }
                 $first = false;
 
-                if ($group->boundaryComment !== null) {
-                    $parts[] = $group->boundaryComment->line . "\n";
+                [$boundaryLines, $chunks] = $this->detachBoundaryLines($group);
+                if ($boundaryLines !== []) {
+                    $parts[] = implode('', $boundaryLines);
                 }
 
                 $groupChunks = array_map(
                     fn (ServiceChunk $chunk): ServiceChunk => $this->normalizeChunk($chunk),
-                    $group->chunks,
+                    $chunks,
                 );
 
                 foreach ($groupChunks as $i => $chunk) {
@@ -75,39 +75,37 @@ final class ServicesSorter
     }
 
     /**
-     * @param list<ServiceGroup> $groups
-     * @return list<ServiceGroup>
+     * @return array{list<string>, list<ServiceChunk>}
      */
-    private function sortGroups(array $groups): array
+    private function detachBoundaryLines(ServiceGroup $group): array
     {
-        $sortedGroups = array_map(
-            fn (ServiceGroup $group): ServiceGroup => new ServiceGroup(
-                $group->boundaryComment,
-                $this->keySorter->sortChunks($group->chunks),
-            ),
-            $groups,
-        );
+        if ($group->boundaryComment === null || $group->boundaryComment->nextServiceKey === null) {
+            return [[], $group->chunks];
+        }
 
-        usort($sortedGroups, function (ServiceGroup $a, ServiceGroup $b): int {
-            $aFirstChunk = $a->chunks[0] ?? null;
-            $bFirstChunk = $b->chunks[0] ?? null;
-            $aFirstKey = $aFirstChunk !== null ? $aFirstChunk->key : '';
-            $bFirstKey = $bFirstChunk !== null ? $bFirstChunk->key : '';
-
-            $aNormalized = $this->normalizer->normalize($aFirstKey);
-            $bNormalized = $this->normalizer->normalize($bFirstKey);
-
-            $aUnderscore = str_starts_with($aNormalized, '_');
-            $bUnderscore = str_starts_with($bNormalized, '_');
-
-            if ($aUnderscore !== $bUnderscore) {
-                return $aUnderscore ? -1 : 1;
+        $chunks = $group->chunks;
+        foreach ($chunks as $chunkIndex => $chunk) {
+            if ($chunk->key !== $group->boundaryComment->nextServiceKey) {
+                continue;
             }
 
-            return strcmp($aNormalized, $bNormalized);
-        });
+            foreach ($chunk->lines as $lineIndex => $line) {
+                $key = rtrim(rtrim(ltrim($line, " \t")), ':');
+                if ($key !== $chunk->key) {
+                    continue;
+                }
 
-        return $sortedGroups;
+                $boundaryLines = array_slice($chunk->lines, 0, $lineIndex);
+                $chunks[$chunkIndex] = new ServiceChunk(
+                    $chunk->key,
+                    array_slice($chunk->lines, $lineIndex),
+                );
+
+                return [$boundaryLines, $chunks];
+            }
+        }
+
+        return [[$group->boundaryComment->line . "\n"], $chunks];
     }
 
     private function normalizeChunk(ServiceChunk $chunk): ServiceChunk

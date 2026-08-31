@@ -44,5 +44,5 @@ $registerCommand = static function (Application $application, Command $command):
 };
 
 $registerCommand($application, new CheckCommand($parser, new ServiceOrderChecker($keySorter), new NativeFileIO()));
-$registerCommand($application, new FixCommand($parser, new ServicesSorter($keySorter, $normalizer), new NativeFileIO()));
+$registerCommand($application, new FixCommand($parser, new ServicesSorter($keySorter), new NativeFileIO()));
 $application->run();
