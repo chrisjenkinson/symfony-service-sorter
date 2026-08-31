@@ -1,7 +1,7 @@
 services:
-    App\AlphaService: ~
-
     App\ZuluService: ~
+
+    App\AlphaService: ~
 
     # Read model services
 

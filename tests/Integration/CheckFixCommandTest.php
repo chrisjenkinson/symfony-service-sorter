@@ -182,6 +182,7 @@ final class CheckFixCommandTest extends TestCase
         $fixTester->execute(['file' => $path], ['capture_stderr_separately' => true]);
 
         self::assertSame(0, $fixTester->getStatusCode());
+        self::assertStringContainsString('Fixed:', $fixTester->getDisplay());
 
         $checkTester = $this->createCheckCommandTester();
         $checkTester->execute(['file' => $path], ['capture_stderr_separately' => true]);
