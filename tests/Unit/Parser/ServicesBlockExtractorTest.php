@@ -2,9 +2,9 @@
 
 declare(strict_types=1);
 
-namespace App\Tests\Unit\Parser;
+namespace ChrisJenkinson\SymfonyServiceSorter\Tests\Unit\Parser;
 
-use App\Parser\Extraction\ServicesBlockExtractor;
+use ChrisJenkinson\SymfonyServiceSorter\Parser\Extraction\ServicesBlockExtractor;
 use PHPUnit\Framework\TestCase;
 
 final class ServicesBlockExtractorTest extends TestCase

@@ -2,10 +2,10 @@
 
 declare(strict_types=1);
 
-namespace App\Tests\Unit\Parser;
+namespace ChrisJenkinson\SymfonyServiceSorter\Tests\Unit\Parser;
 
-use App\Parser\ClassifiedComment;
-use App\Parser\CommentType;
+use ChrisJenkinson\SymfonyServiceSorter\Parser\ClassifiedComment;
+use ChrisJenkinson\SymfonyServiceSorter\Parser\CommentType;
 use PHPUnit\Framework\TestCase;
 
 final class ClassifiedCommentTest extends TestCase

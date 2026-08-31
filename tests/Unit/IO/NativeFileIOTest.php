@@ -2,10 +2,10 @@
 
 declare(strict_types=1);
 
-namespace App\Tests\Unit\IO;
+namespace ChrisJenkinson\SymfonyServiceSorter\Tests\Unit\IO;
 
-use App\IO\FileIOException;
-use App\IO\NativeFileIO;
+use ChrisJenkinson\SymfonyServiceSorter\IO\FileIOException;
+use ChrisJenkinson\SymfonyServiceSorter\IO\NativeFileIO;
 use PHPUnit\Framework\TestCase;
 
 final class NativeFileIOTest extends TestCase

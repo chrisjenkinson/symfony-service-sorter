@@ -2,9 +2,9 @@
 
 declare(strict_types=1);
 
-namespace App\Tests\Unit\Command;
+namespace ChrisJenkinson\SymfonyServiceSorter\Tests\Unit\Command;
 
-use App\IO\FileIO;
+use ChrisJenkinson\SymfonyServiceSorter\IO\FileIO;
 
 final class TestFileIO implements FileIO
 {

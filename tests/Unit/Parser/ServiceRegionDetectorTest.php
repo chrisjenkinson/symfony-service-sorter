@@ -2,11 +2,11 @@
 
 declare(strict_types=1);
 
-namespace App\Tests\Unit\Parser;
+namespace ChrisJenkinson\SymfonyServiceSorter\Tests\Unit\Parser;
 
-use App\Parser\AmbiguousCommentException;
-use App\Parser\Region\LineType;
-use App\Parser\Region\ServiceRegionDetector;
+use ChrisJenkinson\SymfonyServiceSorter\Parser\AmbiguousCommentException;
+use ChrisJenkinson\SymfonyServiceSorter\Parser\Region\LineType;
+use ChrisJenkinson\SymfonyServiceSorter\Parser\Region\ServiceRegionDetector;
 use PHPUnit\Framework\TestCase;
 
 final class ServiceRegionDetectorTest extends TestCase

@@ -23,12 +23,12 @@
     },
     "autoload": {
         "psr-4": {
-            "App\\": "src/"
+            "ChrisJenkinson\\SymfonyServiceSorter\\": "src/"
         }
     },
     "autoload-dev": {
         "psr-4": {
-            "App\\Tests\\": "tests/"
+            "ChrisJenkinson\\SymfonyServiceSorter\\Tests\\": "tests/"
         }
     },
     "bin": ["bin/sort-services"],

@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace App\IO;
+namespace ChrisJenkinson\SymfonyServiceSorter\IO;
 
 final class NativeFileIO implements FileIO
 {

@@ -2,16 +2,16 @@
 
 declare(strict_types=1);
 
-namespace App\Tests\Unit\Parser;
+namespace ChrisJenkinson\SymfonyServiceSorter\Tests\Unit\Parser;
 
-use App\Parser\AmbiguousCommentException;
-use App\Parser\CommentType;
-use App\Parser\Extraction\ServiceChunkExtractor;
-use App\Parser\Extraction\ServicesBlockExtractor;
-use App\Parser\Region\ServiceBlockLineClassifier;
-use App\Parser\Region\ServiceRegionAnalyzer;
-use App\Parser\Region\ServiceRegionDetector;
-use App\Parser\YamlServiceParser;
+use ChrisJenkinson\SymfonyServiceSorter\Parser\AmbiguousCommentException;
+use ChrisJenkinson\SymfonyServiceSorter\Parser\CommentType;
+use ChrisJenkinson\SymfonyServiceSorter\Parser\Extraction\ServiceChunkExtractor;
+use ChrisJenkinson\SymfonyServiceSorter\Parser\Extraction\ServicesBlockExtractor;
+use ChrisJenkinson\SymfonyServiceSorter\Parser\Region\ServiceBlockLineClassifier;
+use ChrisJenkinson\SymfonyServiceSorter\Parser\Region\ServiceRegionAnalyzer;
+use ChrisJenkinson\SymfonyServiceSorter\Parser\Region\ServiceRegionDetector;
+use ChrisJenkinson\SymfonyServiceSorter\Parser\YamlServiceParser;
 use PHPUnit\Framework\TestCase;
 
 final class YamlServiceParserTest extends TestCase

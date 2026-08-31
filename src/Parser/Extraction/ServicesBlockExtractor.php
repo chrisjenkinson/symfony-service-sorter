@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace App\Parser\Extraction;
+namespace ChrisJenkinson\SymfonyServiceSorter\Parser\Extraction;
 
 final class ServicesBlockExtractor
 {

@@ -2,15 +2,15 @@
 
 declare(strict_types=1);
 
-namespace App\Tests\Unit\Parser;
+namespace ChrisJenkinson\SymfonyServiceSorter\Tests\Unit\Parser;
 
-use App\Parser\AmbiguousCommentException;
-use App\Parser\CommentType;
-use App\Parser\Extraction\ChunkDescription;
-use App\Parser\Region\ServiceBlockLineClassifier;
-use App\Parser\Region\ServiceRegionAnalyzer;
-use App\Parser\Region\ServiceRegionDetector;
-use App\Parser\ServiceChunk;
+use ChrisJenkinson\SymfonyServiceSorter\Parser\AmbiguousCommentException;
+use ChrisJenkinson\SymfonyServiceSorter\Parser\CommentType;
+use ChrisJenkinson\SymfonyServiceSorter\Parser\Extraction\ChunkDescription;
+use ChrisJenkinson\SymfonyServiceSorter\Parser\Region\ServiceBlockLineClassifier;
+use ChrisJenkinson\SymfonyServiceSorter\Parser\Region\ServiceRegionAnalyzer;
+use ChrisJenkinson\SymfonyServiceSorter\Parser\Region\ServiceRegionDetector;
+use ChrisJenkinson\SymfonyServiceSorter\Parser\ServiceChunk;
 use PHPUnit\Framework\TestCase;
 
 final class ServiceRegionAnalyzerTest extends TestCase

@@ -2,13 +2,13 @@
 
 declare(strict_types=1);
 
-namespace App\Tests\Unit\Sorter;
+namespace ChrisJenkinson\SymfonyServiceSorter\Tests\Unit\Sorter;
 
-use App\Parser\ParsedFile;
-use App\Parser\ServiceChunk;
-use App\Sorter\ServiceKeyNormalizer;
-use App\Sorter\ServiceKeySorter;
-use App\Sorter\ServicesSorter;
+use ChrisJenkinson\SymfonyServiceSorter\Parser\ParsedFile;
+use ChrisJenkinson\SymfonyServiceSorter\Parser\ServiceChunk;
+use ChrisJenkinson\SymfonyServiceSorter\Sorter\ServiceKeyNormalizer;
+use ChrisJenkinson\SymfonyServiceSorter\Sorter\ServiceKeySorter;
+use ChrisJenkinson\SymfonyServiceSorter\Sorter\ServicesSorter;
 use PHPUnit\Framework\TestCase;
 
 final class ServicesSorterTest extends TestCase
