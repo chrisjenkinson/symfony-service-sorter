@@ -2,9 +2,9 @@
 
 declare(strict_types=1);
 
-namespace App\Parser\Extraction;
+namespace ChrisJenkinson\SymfonyServiceSorter\Parser\Extraction;
 
-use App\Parser\ServiceChunk;
+use ChrisJenkinson\SymfonyServiceSorter\Parser\ServiceChunk;
 
 final class ChunkDescription
 {

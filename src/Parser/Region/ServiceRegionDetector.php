@@ -2,9 +2,9 @@
 
 declare(strict_types=1);
 
-namespace App\Parser\Region;
+namespace ChrisJenkinson\SymfonyServiceSorter\Parser\Region;
 
-use App\Parser\AmbiguousCommentException;
+use ChrisJenkinson\SymfonyServiceSorter\Parser\AmbiguousCommentException;
 
 final class ServiceRegionDetector
 {

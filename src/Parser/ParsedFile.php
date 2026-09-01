@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace App\Parser;
+namespace ChrisJenkinson\SymfonyServiceSorter\Parser;
 
 /**
  * Represents a parsed YAML file. When no `services:` key is present,

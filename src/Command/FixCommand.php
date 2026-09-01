@@ -2,14 +2,14 @@
 
 declare(strict_types=1);
 
-namespace App\Command;
+namespace ChrisJenkinson\SymfonyServiceSorter\Command;
 
-use App\IO\FileIO;
-use App\IO\FileIOException;
-use App\Parser\AmbiguousCommentException;
-use App\Parser\YamlServiceParser;
-use App\Sorter\DuplicateServiceKeyException;
-use App\Sorter\ServicesSorter;
+use ChrisJenkinson\SymfonyServiceSorter\IO\FileIO;
+use ChrisJenkinson\SymfonyServiceSorter\IO\FileIOException;
+use ChrisJenkinson\SymfonyServiceSorter\Parser\AmbiguousCommentException;
+use ChrisJenkinson\SymfonyServiceSorter\Parser\YamlServiceParser;
+use ChrisJenkinson\SymfonyServiceSorter\Sorter\DuplicateServiceKeyException;
+use ChrisJenkinson\SymfonyServiceSorter\Sorter\ServicesSorter;
 use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputArgument;

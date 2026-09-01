@@ -2,11 +2,11 @@
 
 declare(strict_types=1);
 
-namespace App\Parser;
+namespace ChrisJenkinson\SymfonyServiceSorter\Parser;
 
-use App\Parser\Extraction\ServiceChunkExtractor;
-use App\Parser\Extraction\ServicesBlockExtractor;
-use App\Parser\Region\ServiceRegionAnalyzer;
+use ChrisJenkinson\SymfonyServiceSorter\Parser\Extraction\ServiceChunkExtractor;
+use ChrisJenkinson\SymfonyServiceSorter\Parser\Extraction\ServicesBlockExtractor;
+use ChrisJenkinson\SymfonyServiceSorter\Parser\Region\ServiceRegionAnalyzer;
 
 final class YamlServiceParser
 {

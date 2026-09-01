@@ -2,20 +2,20 @@
 
 declare(strict_types=1);
 
-namespace App\Tests\Unit\Command;
+namespace ChrisJenkinson\SymfonyServiceSorter\Tests\Unit\Command;
 
-use App\Command\FixCommand;
-use App\IO\FileIO;
-use App\IO\FileIOException;
-use App\Parser\Extraction\ServiceChunkExtractor;
-use App\Parser\Extraction\ServicesBlockExtractor;
-use App\Parser\Region\ServiceBlockLineClassifier;
-use App\Parser\Region\ServiceRegionAnalyzer;
-use App\Parser\Region\ServiceRegionDetector;
-use App\Parser\YamlServiceParser;
-use App\Sorter\ServiceKeyNormalizer;
-use App\Sorter\ServiceKeySorter;
-use App\Sorter\ServicesSorter;
+use ChrisJenkinson\SymfonyServiceSorter\Command\FixCommand;
+use ChrisJenkinson\SymfonyServiceSorter\IO\FileIO;
+use ChrisJenkinson\SymfonyServiceSorter\IO\FileIOException;
+use ChrisJenkinson\SymfonyServiceSorter\Parser\Extraction\ServiceChunkExtractor;
+use ChrisJenkinson\SymfonyServiceSorter\Parser\Extraction\ServicesBlockExtractor;
+use ChrisJenkinson\SymfonyServiceSorter\Parser\Region\ServiceBlockLineClassifier;
+use ChrisJenkinson\SymfonyServiceSorter\Parser\Region\ServiceRegionAnalyzer;
+use ChrisJenkinson\SymfonyServiceSorter\Parser\Region\ServiceRegionDetector;
+use ChrisJenkinson\SymfonyServiceSorter\Parser\YamlServiceParser;
+use ChrisJenkinson\SymfonyServiceSorter\Sorter\ServiceKeyNormalizer;
+use ChrisJenkinson\SymfonyServiceSorter\Sorter\ServiceKeySorter;
+use ChrisJenkinson\SymfonyServiceSorter\Sorter\ServicesSorter;
 use PHPUnit\Framework\TestCase;
 use Symfony\Component\Console\Tester\CommandTester;
 

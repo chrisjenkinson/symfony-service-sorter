@@ -2,13 +2,13 @@
 
 declare(strict_types=1);
 
-namespace App\Tests\Unit\Sorter;
+namespace ChrisJenkinson\SymfonyServiceSorter\Tests\Unit\Sorter;
 
-use App\Parser\ServiceChunk;
-use App\Parser\ServiceGroup;
-use App\Sorter\DuplicateServiceKeyException;
-use App\Sorter\ServiceKeyNormalizer;
-use App\Sorter\ServiceKeySorter;
+use ChrisJenkinson\SymfonyServiceSorter\Parser\ServiceChunk;
+use ChrisJenkinson\SymfonyServiceSorter\Parser\ServiceGroup;
+use ChrisJenkinson\SymfonyServiceSorter\Sorter\DuplicateServiceKeyException;
+use ChrisJenkinson\SymfonyServiceSorter\Sorter\ServiceKeyNormalizer;
+use ChrisJenkinson\SymfonyServiceSorter\Sorter\ServiceKeySorter;
 use PHPUnit\Framework\TestCase;
 
 final class ServiceKeySorterTest extends TestCase

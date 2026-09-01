@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace App\Sorter;
+namespace ChrisJenkinson\SymfonyServiceSorter\Sorter;
 
 final class OutOfOrderEntry
 {

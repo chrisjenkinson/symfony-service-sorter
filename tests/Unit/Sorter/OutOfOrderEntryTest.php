@@ -2,9 +2,9 @@
 
 declare(strict_types=1);
 
-namespace App\Tests\Unit\Sorter;
+namespace ChrisJenkinson\SymfonyServiceSorter\Tests\Unit\Sorter;
 
-use App\Sorter\OutOfOrderEntry;
+use ChrisJenkinson\SymfonyServiceSorter\Sorter\OutOfOrderEntry;
 use PHPUnit\Framework\TestCase;
 
 final class OutOfOrderEntryTest extends TestCase

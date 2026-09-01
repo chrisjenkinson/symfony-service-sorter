@@ -2,10 +2,10 @@
 
 declare(strict_types=1);
 
-namespace App\Tests\Unit\Parser;
+namespace ChrisJenkinson\SymfonyServiceSorter\Tests\Unit\Parser;
 
-use App\Parser\Region\LineType;
-use App\Parser\Region\ServiceBlockLineClassifier;
+use ChrisJenkinson\SymfonyServiceSorter\Parser\Region\LineType;
+use ChrisJenkinson\SymfonyServiceSorter\Parser\Region\ServiceBlockLineClassifier;
 use PHPUnit\Framework\TestCase;
 
 final class ServiceBlockLineClassifierTest extends TestCase

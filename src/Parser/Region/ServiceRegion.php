@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace App\Parser\Region;
+namespace ChrisJenkinson\SymfonyServiceSorter\Parser\Region;
 
 final class ServiceRegion
 {

@@ -2,17 +2,17 @@
 
 declare(strict_types=1);
 
-namespace App\Tests\Integration;
+namespace ChrisJenkinson\SymfonyServiceSorter\Tests\Integration;
 
-use App\Parser\Extraction\ServiceChunkExtractor;
-use App\Parser\Extraction\ServicesBlockExtractor;
-use App\Parser\Region\ServiceBlockLineClassifier;
-use App\Parser\Region\ServiceRegionAnalyzer;
-use App\Parser\Region\ServiceRegionDetector;
-use App\Parser\YamlServiceParser;
-use App\Sorter\ServiceKeyNormalizer;
-use App\Sorter\ServiceKeySorter;
-use App\Sorter\ServicesSorter;
+use ChrisJenkinson\SymfonyServiceSorter\Parser\Extraction\ServiceChunkExtractor;
+use ChrisJenkinson\SymfonyServiceSorter\Parser\Extraction\ServicesBlockExtractor;
+use ChrisJenkinson\SymfonyServiceSorter\Parser\Region\ServiceBlockLineClassifier;
+use ChrisJenkinson\SymfonyServiceSorter\Parser\Region\ServiceRegionAnalyzer;
+use ChrisJenkinson\SymfonyServiceSorter\Parser\Region\ServiceRegionDetector;
+use ChrisJenkinson\SymfonyServiceSorter\Parser\YamlServiceParser;
+use ChrisJenkinson\SymfonyServiceSorter\Sorter\ServiceKeyNormalizer;
+use ChrisJenkinson\SymfonyServiceSorter\Sorter\ServiceKeySorter;
+use ChrisJenkinson\SymfonyServiceSorter\Sorter\ServicesSorter;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 

@@ -2,14 +2,14 @@
 
 declare(strict_types=1);
 
-namespace App\Parser\Region;
+namespace ChrisJenkinson\SymfonyServiceSorter\Parser\Region;
 
-use App\Parser\AmbiguousCommentException;
-use App\Parser\ClassifiedComment;
-use App\Parser\CommentType;
-use App\Parser\Extraction\ChunkDescription;
-use App\Parser\ServiceChunk;
-use App\Parser\ServiceGroup;
+use ChrisJenkinson\SymfonyServiceSorter\Parser\AmbiguousCommentException;
+use ChrisJenkinson\SymfonyServiceSorter\Parser\ClassifiedComment;
+use ChrisJenkinson\SymfonyServiceSorter\Parser\CommentType;
+use ChrisJenkinson\SymfonyServiceSorter\Parser\Extraction\ChunkDescription;
+use ChrisJenkinson\SymfonyServiceSorter\Parser\ServiceChunk;
+use ChrisJenkinson\SymfonyServiceSorter\Parser\ServiceGroup;
 
 final class ServiceRegionAnalyzer
 {

@@ -2,9 +2,9 @@
 
 declare(strict_types=1);
 
-namespace App\Tests\Unit\Parser;
+namespace ChrisJenkinson\SymfonyServiceSorter\Tests\Unit\Parser;
 
-use App\Parser\ParsedFile;
+use ChrisJenkinson\SymfonyServiceSorter\Parser\ParsedFile;
 use PHPUnit\Framework\TestCase;
 
 final class ParsedFileUpdatedTest extends TestCase

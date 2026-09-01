@@ -2,10 +2,10 @@
 
 declare(strict_types=1);
 
-namespace App\Sorter;
+namespace ChrisJenkinson\SymfonyServiceSorter\Sorter;
 
-use App\Parser\ServiceChunk;
-use App\Parser\ServiceGroup;
+use ChrisJenkinson\SymfonyServiceSorter\Parser\ServiceChunk;
+use ChrisJenkinson\SymfonyServiceSorter\Parser\ServiceGroup;
 
 final class ServiceKeySorter
 {
