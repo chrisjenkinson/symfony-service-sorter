@@ -34,7 +34,7 @@ vendor/bin/sort-services <command> <path-to-yaml-file>...
 vendor/bin/sort-services check config/services.yaml
 ```
 
-`check` exits successfully when services are already in order and reports ordering problems otherwise.
+`check` exits successfully when `fix` would leave the file unchanged. It reports ordering or formatting differences otherwise.
 
 You can also check more than one file in one invocation:
 
@@ -48,7 +48,7 @@ vendor/bin/sort-services check config/services.yaml config/services_test.yaml
 vendor/bin/sort-services fix config/services.yaml
 ```
 
-`fix` rewrites files in place only when sorting changes their contents. Files that are already sorted are reported as `Unchanged`.
+`fix` rewrites files in place when their service order or formatting differs from the canonical output. Canonical files are reported as `Unchanged`.
 
 You can also fix more than one file in one invocation:
 

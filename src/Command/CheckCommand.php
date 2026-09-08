@@ -10,6 +10,7 @@ use ChrisJenkinson\SymfonyServiceSorter\Parser\AmbiguousCommentException;
 use ChrisJenkinson\SymfonyServiceSorter\Parser\YamlServiceParser;
 use ChrisJenkinson\SymfonyServiceSorter\Sorter\DuplicateServiceKeyException;
 use ChrisJenkinson\SymfonyServiceSorter\Sorter\ServiceOrderChecker;
+use ChrisJenkinson\SymfonyServiceSorter\Sorter\ServicesSorter;
 use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputArgument;
@@ -19,13 +20,14 @@ use Symfony\Component\Console\Output\OutputInterface;
 
 #[AsCommand(
     name: 'check',
-    description: 'Checks whether services in a YAML file are sorted alphabetically',
+    description: 'Checks whether services in a YAML file are in canonical order and format',
 )]
 final class CheckCommand extends Command
 {
     public function __construct(
         private readonly YamlServiceParser $parser,
         private readonly ServiceOrderChecker $checker,
+        private readonly ServicesSorter $sorter,
         private readonly FileIO $fileIO,
     ) {
         parent::__construct();
@@ -73,19 +75,26 @@ final class CheckCommand extends Command
             }
 
             try {
-                $outOfOrder = $this->checker->check($parsedFile);
+                $canonicalContent = $this->sorter->sort($parsedFile);
             } catch (DuplicateServiceKeyException $e) {
                 $errorOutput->writeln(sprintf('<error>%s (%s)</error>', $e->getMessage(), $filePath));
                 $hadFailure = true;
                 continue;
             }
 
-            if ($outOfOrder === []) {
+            if ($canonicalContent === $content) {
                 $output->writeln(sprintf('All services are in order: %s', $filePath));
                 continue;
             }
 
             $hadFailure = true;
+            $outOfOrder = $this->checker->check($parsedFile);
+
+            if ($outOfOrder === []) {
+                $errorOutput->writeln(sprintf('Services are not in canonical form: %s', $filePath));
+                continue;
+            }
+
             $errorOutput->writeln(sprintf('The following services are not in alphabetical order: %s', $filePath));
             foreach ($outOfOrder as $entry) {
                 $errorOutput->writeln(sprintf(

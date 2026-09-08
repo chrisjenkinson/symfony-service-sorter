@@ -31,6 +31,7 @@ $parser = new YamlServiceParser(
     ),
 );
 $keySorter = new ServiceKeySorter($normalizer);
+$sorter = new ServicesSorter($keySorter);
 
 $application = new Application('sort-services', '1.0.0');
 $registerCommand = static function (Application $application, Command $command): void {
@@ -43,6 +44,6 @@ $registerCommand = static function (Application $application, Command $command):
     $application->add($command);
 };
 
-$registerCommand($application, new CheckCommand($parser, new ServiceOrderChecker($keySorter), new NativeFileIO()));
-$registerCommand($application, new FixCommand($parser, new ServicesSorter($keySorter), new NativeFileIO()));
+$registerCommand($application, new CheckCommand($parser, new ServiceOrderChecker($keySorter), $sorter, new NativeFileIO()));
+$registerCommand($application, new FixCommand($parser, $sorter, new NativeFileIO()));
 $application->run();

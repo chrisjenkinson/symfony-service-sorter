@@ -78,7 +78,7 @@ final class CheckFixCommandTest extends TestCase
 
     private function createCheckCommandTester(): CommandTester
     {
-        return new CommandTester(new CheckCommand($this->parser, $this->checker, $this->fileIO));
+        return new CommandTester(new CheckCommand($this->parser, $this->checker, $this->sorter, $this->fileIO));
     }
 
     private function createFixCommandTester(): CommandTester
@@ -96,6 +96,32 @@ final class CheckFixCommandTest extends TestCase
 
         self::assertSame(0, $tester->getStatusCode());
         self::assertStringContainsString('All services are in order', $tester->getDisplay());
+    }
+
+    public function testCheckFailsUntilFixCanonicalizesSingleLineServices(): void
+    {
+        $path = $this->createTempFixtureFile('single-line-services/input.yaml');
+
+        $checkTester = $this->createCheckCommandTester();
+        $checkTester->execute(['file' => $path], ['capture_stderr_separately' => true]);
+
+        self::assertSame(1, $checkTester->getStatusCode());
+        self::assertStringContainsString('Services are not in canonical form', $checkTester->getErrorOutput());
+
+        $fixTester = $this->createFixCommandTester();
+        $fixTester->execute(['file' => $path], ['capture_stderr_separately' => true]);
+
+        self::assertSame(0, $fixTester->getStatusCode());
+        self::assertSame(
+            $this->readFixture('single-line-services/expected.yaml'),
+            $this->fileIO->read($path),
+        );
+
+        $checkTester = $this->createCheckCommandTester();
+        $checkTester->execute(['file' => $path], ['capture_stderr_separately' => true]);
+
+        self::assertSame(0, $checkTester->getStatusCode(), $checkTester->getErrorOutput());
+        self::assertStringContainsString('All services are in order', $checkTester->getDisplay());
     }
 
     #[DataProvider('unsortedFixtureProvider')]
@@ -126,7 +152,7 @@ final class CheckFixCommandTest extends TestCase
 
     public function testCheckEmptyServicesPasses(): void
     {
-        $path = $this->createTempFixtureFile('empty-services/input.yaml');
+        $path = $this->createTempFixtureFile('empty-services/expected.yaml');
 
         $tester = $this->createCheckCommandTester();
         $tester->execute(['file' => $path], ['capture_stderr_separately' => true]);
