@@ -16,6 +16,7 @@ use ChrisJenkinson\SymfonyServiceSorter\Parser\YamlServiceParser;
 use ChrisJenkinson\SymfonyServiceSorter\Sorter\ServiceKeyNormalizer;
 use ChrisJenkinson\SymfonyServiceSorter\Sorter\ServiceKeySorter;
 use ChrisJenkinson\SymfonyServiceSorter\Sorter\ServiceOrderChecker;
+use ChrisJenkinson\SymfonyServiceSorter\Sorter\ServicesSorter;
 use PHPUnit\Framework\TestCase;
 use Symfony\Component\Console\Tester\CommandTester;
 
@@ -23,6 +24,7 @@ final class CheckCommandTest extends TestCase
 {
     private YamlServiceParser $parser;
     private ServiceOrderChecker $checker;
+    private ServicesSorter $sorter;
     private FileIO $fileIO;
 
     protected function setUp(): void
@@ -35,19 +37,21 @@ final class CheckCommandTest extends TestCase
                 new ServiceRegionDetector(),
             ),
         );
-        $this->checker = new ServiceOrderChecker(new ServiceKeySorter(new ServiceKeyNormalizer()));
+        $keySorter = new ServiceKeySorter(new ServiceKeyNormalizer());
+        $this->checker = new ServiceOrderChecker($keySorter);
+        $this->sorter = new ServicesSorter($keySorter);
         $this->fileIO = TestFileIO::reads('');
     }
 
     private function createCommandTester(): CommandTester
     {
-        $command = new CheckCommand($this->parser, $this->checker, $this->fileIO);
+        $command = new CheckCommand($this->parser, $this->checker, $this->sorter, $this->fileIO);
         return new CommandTester($command);
     }
 
     public function testSortedFileExitsZero(): void
     {
-        $input = "services:\n    App\\AlphaService:\n        autowire: true\n    App\\ZuluService:\n        autowire: true\n";
+        $input = "services:\n    App\\AlphaService:\n        autowire: true\n\n    App\\ZuluService:\n        autowire: true\n";
         $this->fileIO = TestFileIO::reads($input);
 
         $tester = $this->createCommandTester();

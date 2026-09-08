@@ -63,6 +63,7 @@ final class SortServicesIntegrationTest extends TestCase
             'no-services-key' => ['no-services-key'],
             'multiline-values' => ['multiline-values'],
             'case-insensitive' => ['case-insensitive'],
+            'single-line-services' => ['single-line-services'],
         ];
     }
 }
